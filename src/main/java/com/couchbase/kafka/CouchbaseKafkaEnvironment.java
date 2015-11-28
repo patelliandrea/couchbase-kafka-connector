@@ -18,36 +18,36 @@ import java.util.List;
  * @author Sergey Avseyev
  */
 public interface CouchbaseKafkaEnvironment extends CoreEnvironment {
-    /**
-     * Full name of class used to encode objects to byte[] to store in Kafka. It have to implement
-     * {@link kafka.serializer.Encoder} parametrized with DCPEvent.
-     *
-     * @return class name of encoder
-     */
-    String kafkaValueSerializerClass();
-
-    /**
-     * Full name of class used to encode object keys to byte[] to store in Kafka. It have to implement
-     * {@link kafka.serializer.Encoder} parametrized with String.
-     *
-     * @return class name of encoder
-     */
-    String kafkaKeySerializerClass();
-
-    /**
-     * Full name of class used to filter data stream from Couchbase. It have to implement
-     * {@link com.couchbase.kafka.filter.Filter}.
-     *
-     * @return class name of filter
-     */
-    String kafkaFilterClass();
-
-    /**
-     * Returns the size of the events ringbuffer.
-     *
-     * @return the size of the ringbuffer.
-     */
-    int kafkaEventBufferSize();
+//    /**
+//     * Full name of class used to encode objects to byte[] to store in Kafka. It have to implement
+//     * {@link kafka.serializer.Encoder} parametrized with DCPEvent.
+//     *
+//     * @return class name of encoder
+//     */
+//    String kafkaValueSerializerClass();
+//
+//    /**
+//     * Full name of class used to encode object keys to byte[] to store in Kafka. It have to implement
+//     * {@link kafka.serializer.Encoder} parametrized with String.
+//     *
+//     * @return class name of encoder
+//     */
+//    String kafkaKeySerializerClass();
+//
+//    /**
+//     * Full name of class used to filter data stream from Couchbase. It have to implement
+//     * {@link com.couchbase.kafka.filter.Filter}.
+//     *
+//     * @return class name of filter
+//     */
+//    String kafkaFilterClass();
+//
+//    /**
+//     * Returns the size of the events ringbuffer.
+//     *
+//     * @return the size of the ringbuffer.
+//     */
+//    int kafkaEventBufferSize();
 
     /**
      * Full name of class used to serialize state of the Couchbase streams. It have to
@@ -78,17 +78,17 @@ public interface CouchbaseKafkaEnvironment extends CoreEnvironment {
      */
     String couchbasePassword();
 
-    /**
-     * Zookeeper address to pass into kafka client.
-     *
-     * @return zookeeper node address.
-     */
-    String kafkaZookeeperAddress();
-
-    /**
-     * Kafka topic to post events.
-     *
-     * @return kafka topic name.
-     */
-    String kafkaTopic();
+//    /**
+//     * Zookeeper address to pass into kafka client.
+//     *
+//     * @return zookeeper node address.
+//     */
+//    String kafkaZookeeperAddress();
+//
+//    /**
+//     * Kafka topic to post events.
+//     *
+//     * @return kafka topic name.
+//     */
+//    String kafkaTopic();
 }

@@ -36,25 +36,25 @@ import java.util.Properties;
  */
 public class DefaultCouchbaseKafkaEnvironment extends DefaultCoreEnvironment implements CouchbaseKafkaEnvironment {
     private static final CouchbaseLogger LOGGER = CouchbaseLoggerFactory.getInstance(CouchbaseKafkaEnvironment.class);
-
-    private static final String KAFKA_KEY_SERIALIZER_CLASS = "kafka.serializer.StringEncoder";
-    private static final String KAFKA_VALUE_SERIALIZER_CLASS = "com.couchbase.kafka.coder.JsonEncoder";
-    private static final String KAFKA_FILTER_CLASS = "com.couchbase.kafka.filter.MutationsFilter";
-    private static final int KAFKA_EVENT_BUFFER_SIZE = 16384;
-    private static final String KAFKA_ZOOKEEPER_ADDRESS = "127.0.0.1:2181";
-    private static final String KAFKA_TOPIC = "default";
+//
+//    private static final String KAFKA_KEY_SERIALIZER_CLASS = "kafka.serializer.StringEncoder";
+//    private static final String KAFKA_VALUE_SERIALIZER_CLASS = "com.couchbase.kafka.coder.JsonEncoder";
+//    private static final String KAFKA_FILTER_CLASS = "com.couchbase.kafka.filter.MutationsFilter";
+//    private static final int KAFKA_EVENT_BUFFER_SIZE = 16384;
+//    private static final String KAFKA_ZOOKEEPER_ADDRESS = "127.0.0.1:2181";
+//    private static final String KAFKA_TOPIC = "default";
     private static final String COUCHBASE_STATE_SERIALIZER_CLASS = "com.couchbase.kafka.state.ZookeeperStateSerializer";
     private static final String COUCHBASE_BUCKET = "default";
     private static final String COUCHBASE_PASSWORD = "";
     private static final String COUCHBASE_NODE = "127.0.0.1";
 
 
-    private final String kafkaKeySerializerClass;
-    private final String kafkaFilterClass;
-    private final String kafkaValueSerializerClass;
-    private final int kafkaEventBufferSize;
-    private String kafkaTopic;
-    private String kafkaZookeeperAddress;
+//    private final String kafkaKeySerializerClass;
+//    private final String kafkaFilterClass;
+//    private final String kafkaValueSerializerClass;
+//    private final int kafkaEventBufferSize;
+//    private String kafkaTopic;
+//    private String kafkaZookeeperAddress;
     private String couchbaseStateSerializerClass;
     private String couchbasePassword;
     private String couchbaseBucket;
@@ -72,10 +72,10 @@ public class DefaultCouchbaseKafkaEnvironment extends DefaultCoreEnvironment imp
      */
     static {
         try {
-            Class<CouchbaseKafkaConnector> connectorClass = CouchbaseKafkaConnector.class;
-            if (connectorClass == null) {
-                throw new IllegalStateException("Could not locate CouchbaseKafkaConnector");
-            }
+//            Class<CouchbaseKafkaConnector> connectorClass = CouchbaseKafkaConnector.class;
+//            if (connectorClass == null) {
+//                throw new IllegalStateException("Could not locate CouchbaseKafkaConnector");
+//            }
 
             String version = null;
             String gitVersion = null;
@@ -130,47 +130,47 @@ public class DefaultCouchbaseKafkaEnvironment extends DefaultCoreEnvironment imp
             throw new IllegalStateException("Kafka integration cannot work without DCP enabled.");
         }
 
-        kafkaKeySerializerClass = stringPropertyOr("kafka.keySerializerClass", builder.kafkaKeySerializerClass);
-        kafkaValueSerializerClass = stringPropertyOr("kafka.valueSerializerClass", builder.kafkaValueSerializerClass);
-        kafkaFilterClass = stringPropertyOr("kafka.filterClass", builder.kafkaFilterClass);
-        kafkaEventBufferSize = intPropertyOr("kafka.eventBufferSize", builder.kafkaEventBufferSize);
-        kafkaTopic = stringPropertyOr("kafka.topic", builder.kafkaTopic);
-        kafkaZookeeperAddress = stringPropertyOr("kafka.zookeeperAddress", builder.kafkaZookeeperAddress);
+//        kafkaKeySerializerClass = stringPropertyOr("kafka.keySerializerClass", builder.kafkaKeySerializerClass);
+//        kafkaValueSerializerClass = stringPropertyOr("kafka.valueSerializerClass", builder.kafkaValueSerializerClass);
+//        kafkaFilterClass = stringPropertyOr("kafka.filterClass", builder.kafkaFilterClass);
+//        kafkaEventBufferSize = intPropertyOr("kafka.eventBufferSize", builder.kafkaEventBufferSize);
+//        kafkaTopic = stringPropertyOr("kafka.topic", builder.kafkaTopic);
+//        kafkaZookeeperAddress = stringPropertyOr("kafka.zookeeperAddress", builder.kafkaZookeeperAddress);
         couchbaseStateSerializerClass = stringPropertyOr("couchbaseStateSerializerClass", builder.couchbaseStateSerializerClass);
         couchbaseNodes = stringListPropertyOr("couchbase.nodes", builder.couchbaseNodes);
         couchbaseBucket = stringPropertyOr("couchbase.bucket", builder.couchbaseBucket);
         couchbasePassword = stringPropertyOr("couchbase.password", builder.couchbasePassword);
     }
 
-    @Override
-    public String kafkaValueSerializerClass() {
-        return kafkaValueSerializerClass;
-    }
-
-    @Override
-    public String kafkaKeySerializerClass() {
-        return kafkaKeySerializerClass;
-    }
-
-    @Override
-    public String kafkaFilterClass() {
-        return kafkaFilterClass;
-    }
-
-    @Override
-    public int kafkaEventBufferSize() {
-        return kafkaEventBufferSize;
-    }
-
-    @Override
-    public String kafkaZookeeperAddress() {
-        return kafkaZookeeperAddress;
-    }
-
-    @Override
-    public String kafkaTopic() {
-        return kafkaTopic;
-    }
+//    @Override
+//    public String kafkaValueSerializerClass() {
+//        return kafkaValueSerializerClass;
+//    }
+//
+//    @Override
+//    public String kafkaKeySerializerClass() {
+//        return kafkaKeySerializerClass;
+//    }
+//
+//    @Override
+//    public String kafkaFilterClass() {
+//        return kafkaFilterClass;
+//    }
+//
+//    @Override
+//    public int kafkaEventBufferSize() {
+//        return kafkaEventBufferSize;
+//    }
+//
+//    @Override
+//    public String kafkaZookeeperAddress() {
+//        return kafkaZookeeperAddress;
+//    }
+//
+//    @Override
+//    public String kafkaTopic() {
+//        return kafkaTopic;
+//    }
 
     @Override
     public String couchbaseStateSerializerClass() {
@@ -202,12 +202,12 @@ public class DefaultCouchbaseKafkaEnvironment extends DefaultCoreEnvironment imp
     }
 
     public static class Builder extends DefaultCoreEnvironment.Builder {
-        private String kafkaKeySerializerClass = KAFKA_KEY_SERIALIZER_CLASS;
-        private String kafkaValueSerializerClass = KAFKA_VALUE_SERIALIZER_CLASS;
-        private int kafkaEventBufferSize = KAFKA_EVENT_BUFFER_SIZE;
-        private String kafkaFilterClass = KAFKA_FILTER_CLASS;
-        public String kafkaTopic = KAFKA_TOPIC;
-        public String kafkaZookeeperAddress = KAFKA_ZOOKEEPER_ADDRESS;
+//        private String kafkaKeySerializerClass = KAFKA_KEY_SERIALIZER_CLASS;
+//        private String kafkaValueSerializerClass = KAFKA_VALUE_SERIALIZER_CLASS;
+//        private int kafkaEventBufferSize = KAFKA_EVENT_BUFFER_SIZE;
+//        private String kafkaFilterClass = KAFKA_FILTER_CLASS;
+//        public String kafkaTopic = KAFKA_TOPIC;
+//        public String kafkaZookeeperAddress = KAFKA_ZOOKEEPER_ADDRESS;
         public String couchbaseStateSerializerClass = COUCHBASE_STATE_SERIALIZER_CLASS;
         public List<String> couchbaseNodes;
         public String couchbaseBucket = COUCHBASE_BUCKET;
@@ -217,35 +217,35 @@ public class DefaultCouchbaseKafkaEnvironment extends DefaultCoreEnvironment imp
             couchbaseNodes = Collections.singletonList(COUCHBASE_NODE);
         }
 
-        public Builder kafkaValueSerializerClass(final String className) {
-            this.kafkaValueSerializerClass = className;
-            return this;
-        }
-
-        public Builder kafkaKeySerializerClass(final String className) {
-            this.kafkaKeySerializerClass = className;
-            return this;
-        }
-
-        public Builder kafkaFilterClass(final String className) {
-            this.kafkaFilterClass = className;
-            return this;
-        }
-
-        public Builder kafkaEventBufferSize(final int eventBufferSize) {
-            this.kafkaEventBufferSize = eventBufferSize;
-            return this;
-        }
-
-        public Builder kafkaTopic(final String kafkaTopic) {
-            this.kafkaTopic = kafkaTopic;
-            return this;
-        }
-
-        public Builder kafkaZookeeperAddress(final String kafkaZookeeperAddress) {
-            this.kafkaZookeeperAddress = kafkaZookeeperAddress;
-            return this;
-        }
+//        public Builder kafkaValueSerializerClass(final String className) {
+//            this.kafkaValueSerializerClass = className;
+//            return this;
+//        }
+//
+//        public Builder kafkaKeySerializerClass(final String className) {
+//            this.kafkaKeySerializerClass = className;
+//            return this;
+//        }
+//
+//        public Builder kafkaFilterClass(final String className) {
+//            this.kafkaFilterClass = className;
+//            return this;
+//        }
+//
+//        public Builder kafkaEventBufferSize(final int eventBufferSize) {
+//            this.kafkaEventBufferSize = eventBufferSize;
+//            return this;
+//        }
+//
+//        public Builder kafkaTopic(final String kafkaTopic) {
+//            this.kafkaTopic = kafkaTopic;
+//            return this;
+//        }
+//
+//        public Builder kafkaZookeeperAddress(final String kafkaZookeeperAddress) {
+//            this.kafkaZookeeperAddress = kafkaZookeeperAddress;
+//            return this;
+//        }
 
         public Builder couchbaseStateSerializerClass(final String couchbaseStateSerializerClass) {
             this.couchbaseStateSerializerClass = couchbaseStateSerializerClass;
