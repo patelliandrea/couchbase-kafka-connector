@@ -65,7 +65,7 @@ public class ConnectWriter implements EventHandler<DCPEvent> {
             if (event.message() instanceof MutationMessage) {
                 MutationMessage mutation = (MutationMessage) event.message();
                 String message = mutation.content().toString(CharsetUtil.UTF_8);
-                logger.warn("message: {}", message);
+                logger.trace("message: {}", message);
                 queue.add(message);
                 mutation.content().release();
             }
@@ -73,8 +73,10 @@ public class ConnectWriter implements EventHandler<DCPEvent> {
     }
 
     public static Queue<String> getQueue() {
-        LinkedList<String> queue = new LinkedList<>(ConnectWriter.queue);
+        logger.trace("Static size: {}", queue.size());
+        LinkedList<String> tmpQueue = new LinkedList<>(ConnectWriter.queue);
         ConnectWriter.queue.clear();
-        return new LinkedList<>(queue);
+        logger.trace("Returning size: {}", tmpQueue.size());
+        return new LinkedList<>(tmpQueue);
     }
 }

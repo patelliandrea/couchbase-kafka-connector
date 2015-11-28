@@ -111,7 +111,7 @@ public class CouchbaseReader {
      * Performs connection with 2 seconds timeout.
      */
     public void connect() {
-        connect(2, TimeUnit.SECONDS);
+        connect(10, TimeUnit.SECONDS);
     }
 
     /**
@@ -184,7 +184,7 @@ public class CouchbaseReader {
                     }
                 });
         streamAggregator.feed(state)
-                .toBlocking()
+//                .toBlocking()
                 .forEach(new Action1<DCPRequest>() {
                     @Override
                     public void call(final DCPRequest dcpRequest) {

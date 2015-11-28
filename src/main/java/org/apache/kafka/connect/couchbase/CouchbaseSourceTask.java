@@ -46,10 +46,14 @@ public class CouchbaseSourceTask extends SourceTask {
 
         DefaultCouchbaseEnvironment.Builder builder =
                 (DefaultCouchbaseEnvironment.Builder) DefaultCouchbaseEnvironment.builder()
-                        .kafkaFilterClass("")
-                        .couchbaseNodes("")
-                        .couchbaseBucket("")
-                        .couchbaseStateSerializerClass("")
+                        .kafkaFilterClass("com.couchbase.kafka.filter.MutationsFilter");
+        builder
+                        .couchbaseNodes(couchbaseNodes);
+        builder
+                        .couchbaseBucket(couchbaseBucket);
+        builder
+                        .couchbaseStateSerializerClass("com.couchbase.kafka.state.NullStateSerializer");
+        builder
                         .dcpEnabled(true);
         connector = CouchbaseConnector.create(builder.build());
         connector.run();
@@ -58,6 +62,7 @@ public class CouchbaseSourceTask extends SourceTask {
     @Override
     public List<SourceRecord> poll() throws InterruptedException {
         Queue<String> queue = new LinkedList<>(ConnectWriter.getQueue());
+        log.trace("created queue of size: {}", queue.size());
         while (!queue.isEmpty()) {
             log.warn("received: {}", queue.poll());
         }
@@ -66,6 +71,5 @@ public class CouchbaseSourceTask extends SourceTask {
 
     @Override
     public void stop() {
-
     }
 }
