@@ -27,7 +27,7 @@
 //import com.couchbase.client.deps.com.fasterxml.jackson.databind.JsonNode;
 //import com.couchbase.client.deps.com.fasterxml.jackson.databind.ObjectMapper;
 //import com.couchbase.client.deps.com.fasterxml.jackson.databind.node.ObjectNode;
-//import com.couchbase.kafka.CouchbaseKafkaEnvironment;
+//import com.couchbase.kafka.CouchbaseEnvironment;
 //import kafka.utils.ZKStringSerializer$;
 //import org.I0Itec.zkclient.ZkClient;
 //import org.slf4j.Logger;
@@ -45,7 +45,7 @@
 //    private final ZkClient zkClient;
 //    private final String bucket;
 //
-//    public ZookeeperStateSerializer(final CouchbaseKafkaEnvironment environment) {
+//    public ZookeeperStateSerializer(final CouchbaseEnvironment environment) {
 //        this.zkClient = new ZkClient(environment.kafkaZookeeperAddress(), 4000, 6000, ZKStringSerializer$.MODULE$);
 //        this.bucket = environment.couchbaseBucket();
 //    }

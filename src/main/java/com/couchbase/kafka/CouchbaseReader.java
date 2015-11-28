@@ -77,7 +77,7 @@ public class CouchbaseReader {
      * @param dcpRingBuffer   the buffer where to publish new events.
      * @param stateSerializer the object to serialize the state of DCP streams.
      */
-    public CouchbaseReader(final ClusterFacade core, final CouchbaseKafkaEnvironment environment,
+    public CouchbaseReader(final ClusterFacade core, final CouchbaseEnvironment environment,
                            final RingBuffer<DCPEvent> dcpRingBuffer, final StateSerializer stateSerializer) {
         this(environment.couchbaseNodes(), environment.couchbaseBucket(), environment.couchbasePassword(),
                 core, environment, dcpRingBuffer, stateSerializer);
@@ -86,16 +86,16 @@ public class CouchbaseReader {
     /**
      * Creates a new {@link CouchbaseReader}.
      *
-     * @param couchbaseNodes    list of the Couchbase nodes to override {@link CouchbaseKafkaEnvironment#couchbaseNodes()}
-     * @param couchbaseBucket   bucket name to override {@link CouchbaseKafkaEnvironment#couchbaseBucket()}
-     * @param couchbasePassword password to override {@link CouchbaseKafkaEnvironment#couchbasePassword()}
+     * @param couchbaseNodes    list of the Couchbase nodes to override {@link CouchbaseEnvironment#couchbaseNodes()}
+     * @param couchbaseBucket   bucket name to override {@link CouchbaseEnvironment#couchbaseBucket()}
+     * @param couchbasePassword password to override {@link CouchbaseEnvironment#couchbasePassword()}
      * @param core              the core reference.
      * @param environment       the environment object, which carries settings.
      * @param dcpRingBuffer     the buffer where to publish new events.
      * @param stateSerializer   the object to serialize the state of DCP streams.
      */
     public CouchbaseReader(final List<String> couchbaseNodes, final String couchbaseBucket, final String couchbasePassword,
-                           final ClusterFacade core, final CouchbaseKafkaEnvironment environment,
+                           final ClusterFacade core, final CouchbaseEnvironment environment,
                            final RingBuffer<DCPEvent> dcpRingBuffer, final StateSerializer stateSerializer) {
         this.core = core;
         this.dcpRingBuffer = dcpRingBuffer;
@@ -166,7 +166,7 @@ public class CouchbaseReader {
      * Executes worker reading loop, which relays events from Couchbase to Kafka.
      *
      * @param state initial state for the streams
-     * @param mode the running mode
+     * @param mode  the running mode
      */
     public void run(final BucketStreamAggregatorState state, final RunMode mode) {
         if (mode == RunMode.LOAD_AND_RESUME) {

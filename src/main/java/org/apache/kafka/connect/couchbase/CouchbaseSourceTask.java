@@ -1,14 +1,15 @@
 package org.apache.kafka.connect.couchbase;
 
+import com.couchbase.kafka.ConnectWriter;
+import com.couchbase.kafka.CouchbaseConnector;
+import com.couchbase.kafka.DefaultCouchbaseEnvironment;
 import org.apache.kafka.connect.errors.ConnectException;
 import org.apache.kafka.connect.source.SourceRecord;
 import org.apache.kafka.connect.source.SourceTask;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 /**
  * Created by a.patelli on 28/11/2015.
@@ -20,6 +21,8 @@ public class CouchbaseSourceTask extends SourceTask {
     private String schemaName;
     private String couchbaseNodes;
     private String couchbaseBucket;
+
+    private static CouchbaseConnector connector;
 
     @Override
     public String version() {
@@ -40,10 +43,24 @@ public class CouchbaseSourceTask extends SourceTask {
         couchbaseBucket = props.get(CouchbaseSourceConnector.COUCHBASE_BUCKET);
         if (couchbaseBucket == null)
             throw new ConnectException("CouchbaseSourceTask config missing couchbaseBucket setting");
+
+        DefaultCouchbaseEnvironment.Builder builder =
+                (DefaultCouchbaseEnvironment.Builder) DefaultCouchbaseEnvironment.builder()
+                        .kafkaFilterClass("")
+                        .couchbaseNodes("")
+                        .couchbaseBucket("")
+                        .couchbaseStateSerializerClass("")
+                        .dcpEnabled(true);
+        connector = CouchbaseConnector.create(builder.build());
+        connector.run();
     }
 
     @Override
     public List<SourceRecord> poll() throws InterruptedException {
+        Queue<String> queue = new LinkedList<>(ConnectWriter.getQueue());
+        while (!queue.isEmpty()) {
+            log.warn("received: {}", queue.poll());
+        }
         return new ArrayList<>(0);
     }
 
