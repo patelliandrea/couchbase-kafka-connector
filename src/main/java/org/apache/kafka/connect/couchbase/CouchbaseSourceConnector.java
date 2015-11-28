@@ -9,7 +9,6 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.jar.Pack200;
 
 /**
  * Created by a.patelli on 28/11/2015.
@@ -37,15 +36,15 @@ public class CouchbaseSourceConnector extends SourceConnector {
         topic = props.get(COUCHBASE_NODES);
         topic = props.get(COUCHBASE_BUCKET);
 
-        if(topic == null || topic.isEmpty())
+        if (topic == null || topic.isEmpty())
             throw new ConnectException("Configuration must include 'topic' setting");
-        if(topic.contains(","))
+        if (topic.contains(","))
             throw new ConnectException("Configuration should have a single topic when used as a source");
-        if(schemaName == null || schemaName.isEmpty())
+        if (schemaName == null || schemaName.isEmpty())
             throw new ConnectException("Configuration must include 'schema.name' setting");
-        if(couchbaseNodes == null || couchbaseNodes.isEmpty())
+        if (couchbaseNodes == null || couchbaseNodes.isEmpty())
             throw new ConnectException("Configuration must include 'couchbase.nodes' setting");
-        if(couchbaseBucket == null || couchbaseBucket.isEmpty())
+        if (couchbaseBucket == null || couchbaseBucket.isEmpty())
             throw new ConnectException("Configuration must include 'couchbase.bucket' setting");
     }
 

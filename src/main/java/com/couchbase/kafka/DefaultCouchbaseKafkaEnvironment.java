@@ -36,7 +36,7 @@ import java.util.Properties;
  */
 public class DefaultCouchbaseKafkaEnvironment extends DefaultCoreEnvironment implements CouchbaseKafkaEnvironment {
     private static final CouchbaseLogger LOGGER = CouchbaseLoggerFactory.getInstance(CouchbaseKafkaEnvironment.class);
-//
+    //
 //    private static final String KAFKA_KEY_SERIALIZER_CLASS = "kafka.serializer.StringEncoder";
 //    private static final String KAFKA_VALUE_SERIALIZER_CLASS = "com.couchbase.kafka.coder.JsonEncoder";
 //    private static final String KAFKA_FILTER_CLASS = "com.couchbase.kafka.filter.MutationsFilter";
@@ -49,7 +49,7 @@ public class DefaultCouchbaseKafkaEnvironment extends DefaultCoreEnvironment imp
     private static final String COUCHBASE_NODE = "127.0.0.1";
 
 
-//    private final String kafkaKeySerializerClass;
+    //    private final String kafkaKeySerializerClass;
 //    private final String kafkaFilterClass;
 //    private final String kafkaValueSerializerClass;
 //    private final int kafkaEventBufferSize;
@@ -202,7 +202,7 @@ public class DefaultCouchbaseKafkaEnvironment extends DefaultCoreEnvironment imp
     }
 
     public static class Builder extends DefaultCoreEnvironment.Builder {
-//        private String kafkaKeySerializerClass = KAFKA_KEY_SERIALIZER_CLASS;
+        //        private String kafkaKeySerializerClass = KAFKA_KEY_SERIALIZER_CLASS;
 //        private String kafkaValueSerializerClass = KAFKA_VALUE_SERIALIZER_CLASS;
 //        private int kafkaEventBufferSize = KAFKA_EVENT_BUFFER_SIZE;
 //        private String kafkaFilterClass = KAFKA_FILTER_CLASS;
