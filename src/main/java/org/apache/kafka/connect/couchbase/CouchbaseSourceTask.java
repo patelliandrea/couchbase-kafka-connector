@@ -44,7 +44,7 @@ public class CouchbaseSourceTask extends SourceTask {
 
     @Override
     public List<SourceRecord> poll() throws InterruptedException {
-        return new ArrayList<SourceRecord>(0);
+        return new ArrayList<>(0);
     }
 
     @Override

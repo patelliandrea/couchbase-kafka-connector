@@ -32,9 +32,9 @@ public class CouchbaseSourceConnector extends SourceConnector {
     @Override
     public void start(Map<String, String> props) {
         topic = props.get(TOPIC_CONFIG);
-        topic = props.get(SCHEMA_NAME);
-        topic = props.get(COUCHBASE_NODES);
-        topic = props.get(COUCHBASE_BUCKET);
+        schemaName = props.get(SCHEMA_NAME);
+        couchbaseNodes = props.get(COUCHBASE_NODES);
+        couchbaseBucket = props.get(COUCHBASE_BUCKET);
 
         if (topic == null || topic.isEmpty())
             throw new ConnectException("Configuration must include 'topic' setting");
@@ -55,8 +55,8 @@ public class CouchbaseSourceConnector extends SourceConnector {
 
     @Override
     public List<Map<String, String>> taskConfigs(int maxTasks) {
-        ArrayList<Map<String, String>> configs = new ArrayList<Map<String, String>>();
-        Map<String, String> config = new HashMap<String, String>();
+        ArrayList<Map<String, String>> configs = new ArrayList<>();
+        Map<String, String> config = new HashMap<>();
         config.put(TOPIC_CONFIG, topic);
         config.put(SCHEMA_NAME, schemaName);
         config.put(COUCHBASE_NODES, couchbaseNodes);
