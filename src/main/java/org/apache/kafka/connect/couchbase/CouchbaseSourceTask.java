@@ -3,6 +3,10 @@ package org.apache.kafka.connect.couchbase;
 import com.couchbase.kafka.ConnectWriter;
 import com.couchbase.kafka.CouchbaseConnector;
 import com.couchbase.kafka.DefaultCouchbaseEnvironment;
+import javafx.util.Pair;
+import org.apache.kafka.connect.data.Schema;
+import org.apache.kafka.connect.data.SchemaBuilder;
+import org.apache.kafka.connect.data.Struct;
 import org.apache.kafka.connect.errors.ConnectException;
 import org.apache.kafka.connect.source.SourceRecord;
 import org.apache.kafka.connect.source.SourceTask;
@@ -10,19 +14,22 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.*;
+import java.util.concurrent.ConcurrentLinkedQueue;
+import java.util.concurrent.TimeUnit;
 
 /**
  * Created by a.patelli on 28/11/2015.
  */
 public class CouchbaseSourceTask extends SourceTask {
-    private static final Logger log = LoggerFactory.getLogger(CouchbaseSourceTask.class);
-
+    private static Schema schema = null;
     private String topic;
     private String schemaName;
     private String couchbaseNodes;
     private String couchbaseBucket;
 
     private static CouchbaseConnector connector;
+
+    private final static Map<Short, Long> committed = new HashMap<>(0);
 
     @Override
     public String version() {
@@ -44,29 +51,66 @@ public class CouchbaseSourceTask extends SourceTask {
         if (couchbaseBucket == null)
             throw new ConnectException("CouchbaseSourceTask config missing couchbaseBucket setting");
 
+        schema = SchemaBuilder
+                .struct()
+                .name(schemaName)
+                .field("bucket", Schema.OPTIONAL_STRING_SCHEMA)
+                .field("document", Schema.OPTIONAL_STRING_SCHEMA)
+                .field("body", Schema.OPTIONAL_STRING_SCHEMA)
+                .build();
+
+
         DefaultCouchbaseEnvironment.Builder builder =
                 (DefaultCouchbaseEnvironment.Builder) DefaultCouchbaseEnvironment.builder()
                         .kafkaFilterClass("com.couchbase.kafka.filter.MutationsFilter");
         builder
-                        .couchbaseNodes(couchbaseNodes);
+                .couchbaseNodes(couchbaseNodes);
         builder
-                        .couchbaseBucket(couchbaseBucket);
+                .couchbaseBucket(couchbaseBucket);
         builder
-                        .couchbaseStateSerializerClass("com.couchbase.kafka.state.NullStateSerializer");
+                .couchbaseStateSerializerClass("com.couchbase.kafka.state.NullStateSerializer");
         builder
-                        .dcpEnabled(true);
+                .dcpEnabled(true);
+        builder
+                .setSourceTaskContext(context);
+        builder
+                .autoreleaseAfter(TimeUnit.SECONDS.toMillis(10L));
         connector = CouchbaseConnector.create(builder.build());
         connector.run();
     }
 
     @Override
     public List<SourceRecord> poll() throws InterruptedException {
-        Queue<String> queue = new LinkedList<>(ConnectWriter.getQueue());
-        log.trace("created queue of size: {}", queue.size());
+        List<SourceRecord> records = new ArrayList<>();
+        Queue<Pair<String, Short>> queue = new LinkedList<>(ConnectWriter.getQueue());
         while (!queue.isEmpty()) {
-            log.warn("received: {}", queue.poll());
+            Pair<String, Short> value = queue.poll();
+            String message = value.getKey();
+            Short partition = value.getValue();
+            Struct struct = new Struct(schema);
+            struct.put("bucket", couchbaseBucket);
+            struct.put("document", "doc");
+            struct.put("body", message);
+
+            Long count = null;
+            Map<String, Object> offsetMap = context.offsetStorageReader().offset(Collections.singletonMap("couchbase", partition));
+
+            if(offsetMap != null)
+                if(offsetMap.get(partition.toString()) != null) {
+                    count = (Long) offsetMap.get(partition.toString());
+                }
+
+            if(count == null) {
+                if (committed.get(partition) == null)
+                    committed.put(partition, new Long(0));
+                count = committed.get(partition);
+            }
+
+            count += 1;
+            records.add(new SourceRecord(Collections.singletonMap("couchbase", partition), Collections.singletonMap(partition.toString(), count), topic, struct.schema(), struct));
+            committed.put(partition, count);
         }
-        return new ArrayList<>(0);
+        return records;
     }
 
     @Override

@@ -1,6 +1,7 @@
 package com.couchbase.kafka;
 
 import com.couchbase.client.core.env.CoreEnvironment;
+import org.apache.kafka.connect.source.SourceTaskContext;
 
 import java.util.List;
 
@@ -53,4 +54,6 @@ public interface CouchbaseEnvironment extends CoreEnvironment {
      * @return class name of filter
      */
     String kafkaFilterClass();
+
+    SourceTaskContext getSourceTaskContext();
 }

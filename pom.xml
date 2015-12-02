@@ -7,6 +7,12 @@
     <groupId>org.apache.kafka</groupId>
     <artifactId>connect-couchbase-schema-source</artifactId>
     <version>1.0-SNAPSHOT</version>
+    <repositories>
+        <repository>
+            <url>file://C:\Users\a.patelli\Desktop\Sky\vm\new_framework\repos</url>
+            <id>localRepository</id>
+        </repository>
+    </repositories>
 
     <dependencies>
         <dependency>
@@ -24,9 +30,15 @@
         <dependency>
             <groupId>com.couchbase.client</groupId>
             <artifactId>core-io</artifactId>
-            <version>1.2.2</version>
+            <version>1.2.3</version>
             <scope>compile</scope>
         </dependency>
+        <dependency>
+            <groupId>com.fasterxml.jackson.core</groupId>
+            <artifactId>jackson-core</artifactId>
+            <version>2.7.0-rc1</version>
+        </dependency>
+
     </dependencies>
 
     <build>

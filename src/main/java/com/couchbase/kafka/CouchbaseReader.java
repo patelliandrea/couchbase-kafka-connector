@@ -39,10 +39,18 @@ import com.couchbase.client.deps.com.lmax.disruptor.EventTranslatorOneArg;
 import com.couchbase.client.deps.com.lmax.disruptor.RingBuffer;
 import com.couchbase.kafka.state.RunMode;
 import com.couchbase.kafka.state.StateSerializer;
+import org.apache.kafka.connect.couchbase.CouchbaseSourceTask;
+import org.apache.kafka.connect.couchbase.TestClass;
+import org.apache.kafka.connect.source.SourceTaskContext;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import rx.functions.Action1;
 import rx.functions.Func1;
 
+import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.TimeUnit;
 
 /**
@@ -51,6 +59,8 @@ import java.util.concurrent.TimeUnit;
  * @author Sergey Avseyev
  */
 public class CouchbaseReader {
+    private final static Map<Short, Long> toCommit = new HashMap<>(0);
+
     private static final EventTranslatorOneArg<DCPEvent, CouchbaseMessage> TRANSLATOR =
             new EventTranslatorOneArg<DCPEvent, CouchbaseMessage>() {
                 @Override
@@ -67,21 +77,7 @@ public class CouchbaseReader {
     private final BucketStreamAggregator streamAggregator;
     private final StateSerializer stateSerializer;
     private int numberOfPartitions;
-
-
-    /**
-     * Creates a new {@link CouchbaseReader}.
-     *
-     * @param core            the core reference.
-     * @param environment     the environment object, which carries settings.
-     * @param dcpRingBuffer   the buffer where to publish new events.
-     * @param stateSerializer the object to serialize the state of DCP streams.
-     */
-    public CouchbaseReader(final ClusterFacade core, final CouchbaseEnvironment environment,
-                           final RingBuffer<DCPEvent> dcpRingBuffer, final StateSerializer stateSerializer) {
-        this(environment.couchbaseNodes(), environment.couchbaseBucket(), environment.couchbasePassword(),
-                core, environment, dcpRingBuffer, stateSerializer);
-    }
+    private SourceTaskContext context;
 
     /**
      * Creates a new {@link CouchbaseReader}.
@@ -90,13 +86,11 @@ public class CouchbaseReader {
      * @param couchbaseBucket   bucket name to override {@link CouchbaseEnvironment#couchbaseBucket()}
      * @param couchbasePassword password to override {@link CouchbaseEnvironment#couchbasePassword()}
      * @param core              the core reference.
-     * @param environment       the environment object, which carries settings.
      * @param dcpRingBuffer     the buffer where to publish new events.
      * @param stateSerializer   the object to serialize the state of DCP streams.
      */
     public CouchbaseReader(final List<String> couchbaseNodes, final String couchbaseBucket, final String couchbasePassword,
-                           final ClusterFacade core, final CouchbaseEnvironment environment,
-                           final RingBuffer<DCPEvent> dcpRingBuffer, final StateSerializer stateSerializer) {
+                           final ClusterFacade core, final RingBuffer<DCPEvent> dcpRingBuffer, final StateSerializer stateSerializer, final SourceTaskContext context) {
         this.core = core;
         this.dcpRingBuffer = dcpRingBuffer;
         this.nodes = couchbaseNodes;
@@ -104,6 +98,7 @@ public class CouchbaseReader {
         this.password = couchbasePassword;
         this.streamAggregator = new BucketStreamAggregator(core, bucket);
         this.stateSerializer = stateSerializer;
+        this.context = context;
         this.streamName = "CouchbaseKafka(" + this.hashCode() + ")";
     }
 
@@ -111,7 +106,7 @@ public class CouchbaseReader {
      * Performs connection with 2 seconds timeout.
      */
     public void connect() {
-        connect(10, TimeUnit.SECONDS);
+        connect(3, TimeUnit.SECONDS);
     }
 
     /**
@@ -143,35 +138,15 @@ public class CouchbaseReader {
     }
 
     /**
-     * Continue from the state where the stream was left.
+     * Executes worker reading loop, which relays events from Couchbase to Kafka.
      */
     public void run() {
-        run(RunMode.LOAD_AND_RESUME);
-    }
-
-    /**
-     * Run with specified mode.
-     *
-     * @param mode running mode. See {@link RunMode} for details.
-     */
-    public void run(final RunMode mode) {
-        BucketStreamAggregatorState state = new BucketStreamAggregatorState(streamName);
+        final BucketStreamAggregatorState state = new BucketStreamAggregatorState(streamName);
         for (int i = 0; i < numberOfPartitions; i++) {
-            state.put(new BucketStreamState((short) i, 0, 0, 0xffffffff, 0, 0xffffffff));
+            state.put(new BucketStreamState((short) i, 1, 0, 0xffffffff, 0, 0xffffffff));
         }
-        run(state, mode);
-    }
+        stateSerializer.load(state);
 
-    /**
-     * Executes worker reading loop, which relays events from Couchbase to Kafka.
-     *
-     * @param state initial state for the streams
-     * @param mode  the running mode
-     */
-    public void run(final BucketStreamAggregatorState state, final RunMode mode) {
-        if (mode == RunMode.LOAD_AND_RESUME) {
-            stateSerializer.load(state);
-        }
         state.updates().subscribe(
                 new Action1<BucketStreamStateUpdatedEvent>() {
                     @Override
@@ -186,20 +161,33 @@ public class CouchbaseReader {
         streamAggregator.feed(state)
 //                .toBlocking()
                 .forEach(new Action1<DCPRequest>() {
+                    private long sequence = 0;
+
                     @Override
                     public void call(final DCPRequest dcpRequest) {
                         if (dcpRequest instanceof SnapshotMarkerMessage) {
                             SnapshotMarkerMessage snapshotMarker = (SnapshotMarkerMessage) dcpRequest;
                             final BucketStreamState oldState = state.get(snapshotMarker.partition());
-                            state.put(new BucketStreamState(
+                            BucketStreamState newState = new BucketStreamState(
                                     snapshotMarker.partition(),
                                     oldState.vbucketUUID(),
                                     snapshotMarker.endSequenceNumber(),
                                     oldState.endSequenceNumber(),
                                     snapshotMarker.endSequenceNumber(),
-                                    oldState.snapshotEndSequenceNumber()));
+                                    oldState.snapshotEndSequenceNumber());
+                            state.put(newState);
                         } else {
-                            dcpRingBuffer.tryPublishEvent(TRANSLATOR, dcpRequest);
+                            Short partition = dcpRequest.partition();
+                            Long count = CouchbaseReader.toCommit.get(partition);
+                            count = count == null ? 1 : count;
+                            Long position = new Long(0);
+                            Map<String, Object> offsets = context.offsetStorageReader().offset(Collections.singletonMap("couchbase", partition));
+                            position = offsets == null ? position : (Long) offsets.get(partition.toString());
+
+                            if(count > position) {
+                                dcpRingBuffer.tryPublishEvent(TRANSLATOR, dcpRequest);
+                            }
+                            CouchbaseReader.toCommit.put(partition, ++count);
                         }
                     }
                 });

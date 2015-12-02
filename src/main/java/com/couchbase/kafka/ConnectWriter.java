@@ -26,6 +26,7 @@ import com.couchbase.client.core.message.dcp.MutationMessage;
 import com.couchbase.client.deps.com.lmax.disruptor.EventHandler;
 import com.couchbase.client.deps.io.netty.util.CharsetUtil;
 import com.couchbase.kafka.filter.Filter;
+import javafx.util.Pair;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -39,10 +40,9 @@ import java.util.concurrent.ConcurrentLinkedQueue;
  * @author Sergey Avseyev
  */
 public class ConnectWriter implements EventHandler<DCPEvent> {
-    private static final Logger logger = LoggerFactory.getLogger(ConnectWriter.class);
     private final Filter filter;
 
-    private final static ConcurrentLinkedQueue<String> queue = new ConcurrentLinkedQueue<>();
+    private final static ConcurrentLinkedQueue<Pair<String, Short>> queue = new ConcurrentLinkedQueue<>();
 
     /**
      * Creates a new {@link ConnectWriter}.
@@ -58,25 +58,24 @@ public class ConnectWriter implements EventHandler<DCPEvent> {
      */
     @Override
     public void onEvent(final DCPEvent event, final long sequence, final boolean endOfBatch) throws Exception {
-        if (filter.pass(event)) {
-
-            //do stuff
-
-            if (event.message() instanceof MutationMessage) {
-                MutationMessage mutation = (MutationMessage) event.message();
-                String message = mutation.content().toString(CharsetUtil.UTF_8);
-                logger.trace("message: {}", message);
-                queue.add(message);
-                mutation.content().release();
+        synchronized (queue) {
+            if (filter.pass(event)) {
+                if (event.message() instanceof MutationMessage) {
+                    MutationMessage mutation = (MutationMessage) event.message();
+                    String message = mutation.content().toString(CharsetUtil.UTF_8);
+                    queue.add(new Pair<>(message, ((MutationMessage) event.message()).partition()));
+                    mutation.content().release();
+                }
             }
         }
     }
 
-    public static Queue<String> getQueue() {
-        logger.trace("Static size: {}", queue.size());
-        LinkedList<String> tmpQueue = new LinkedList<>(ConnectWriter.queue);
-        ConnectWriter.queue.clear();
-        logger.trace("Returning size: {}", tmpQueue.size());
+    public static Queue<Pair<String, Short>> getQueue() {
+        Queue<Pair<String, Short>> tmpQueue;
+        synchronized (queue) {
+            tmpQueue = new LinkedList<>(queue);
+            queue.clear();
+        }
         return new LinkedList<>(tmpQueue);
     }
 }

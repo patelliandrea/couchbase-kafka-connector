@@ -38,6 +38,7 @@ import com.couchbase.client.deps.io.netty.util.concurrent.DefaultThreadFactory;
 import com.couchbase.kafka.filter.Filter;
 import com.couchbase.kafka.state.RunMode;
 import com.couchbase.kafka.state.StateSerializer;
+import org.apache.kafka.connect.source.SourceTaskContext;
 
 import java.util.Collections;
 import java.util.List;
@@ -136,23 +137,9 @@ public class CouchbaseConnector implements Runnable {
         disruptor.handleEventsWith(writer);
         disruptor.start();
         dcpRingBuffer = disruptor.getRingBuffer();
-        couchbaseReader = new CouchbaseReader(couchbaseNodes, couchbaseBucket, couchbasePassword, core,
-                environment, dcpRingBuffer, stateSerializer);
+        couchbaseReader = new CouchbaseReader(couchbaseNodes, couchbaseBucket, couchbasePassword, core, dcpRingBuffer, stateSerializer, environment.getSourceTaskContext());
         couchbaseReader.connect();
     }
-
-    /**
-     * Creates {@link CouchbaseConnector} with default settings. Like using "localhost" as endpoints,
-     * "default" Couchbase bucket and Kafka topic.
-     *
-     * @return {@link CouchbaseConnector} with default settings
-     */
-    public static CouchbaseConnector create() {
-        DefaultCouchbaseEnvironment.Builder builder = DefaultCouchbaseEnvironment.builder();
-        builder.dcpEnabled(true);
-        return create(builder.build());
-    }
-
     /**
      * Create {@link CouchbaseConnector} with specified settings.
      *
@@ -177,94 +164,10 @@ public class CouchbaseConnector implements Runnable {
     }
 
     /**
-     * Create {@link CouchbaseConnector} with specified settings.
-     *
-     * @param couchbaseNode     address of Couchbase node.
-     * @param couchbaseBucket   name of Couchbase bucket.
-     * @param couchbasePassword password for Couchbase bucket.
-     * @return configured {@link CouchbaseConnector}
-     * @deprecated Use {@link CouchbaseEnvironment} to initialize connector settings.
-     */
-    public static CouchbaseConnector create(final String couchbaseNode, final String couchbaseBucket, final String couchbasePassword) {
-        DefaultCouchbaseEnvironment.Builder builder = DefaultCouchbaseEnvironment.builder();
-        builder.couchbaseNodes(Collections.singletonList(couchbaseNode))
-                .couchbasePassword(couchbasePassword)
-                .couchbaseBucket(couchbaseBucket)
-                .dcpEnabled(true);
-        return create(builder.build());
-    }
-
-    /**
-     * Returns current sequence numbers for each partition.
-     *
-     * @return the list of the objects representing sequence numbers
-     */
-    public MutationToken[] currentSequenceNumbers() {
-        return core.<GetAllMutationTokensResponse>send(new GetAllMutationTokensRequest(GetAllMutationTokensRequest.PartitionState.ACTIVE,
-                environment.couchbaseBucket())).single().toBlocking().first().mutationTokens();
-    }
-
-    /**
-     * Builds {@link BucketStreamAggregatorState} using current state of the bucket.
-     *
-     * @param name      the name of DCP state aggregator (and underlying DCP connection)
-     * @param direction defines the range which should be defined. The current state
-     *                  of the streams is pivot, Direction.TO_CURRENT will represent
-     *                  all changes happened before current state, and Direction.FROM_CURRENT
-     *                  represents changes that will happen in the future.
-     * @return BucketStreamAggregatorState
-     */
-    public BucketStreamAggregatorState buildState(final String name, final Direction direction) {
-        MutationToken[] tokens = currentSequenceNumbers();
-        BucketStreamAggregatorState state = new BucketStreamAggregatorState(name);
-        for (MutationToken token : tokens) {
-            long start = 0, end = 0;
-            switch (direction) {
-                case TO_CURRENT:
-                    start = 0;
-                    end = token.sequenceNumber();
-                    break;
-                case FROM_CURRENT:
-                    start = token.sequenceNumber();
-                    end = 0xffffffff;
-                    break;
-                case EVERYTHING:
-                    start = 0;
-                    end = 0xffffffff;
-                    break;
-            }
-            state.put(new BucketStreamState((short) token.vbucketID(), token.vbucketUUID(), start, end, 0, 0xffffffff));
-        }
-        return state;
-    }
-
-    /**
      * Executes worker reading loop, which relays events from Couchbase to Kafka.
      */
     @Override
     public void run() {
         couchbaseReader.run();
-    }
-
-    public void run(RunMode mode) {
-        couchbaseReader.run(mode);
-    }
-
-    public void run(final BucketStreamAggregatorState state, final RunMode mode) {
-        couchbaseReader.run(state, mode);
-    }
-
-    private String joinNodes(final List<String> list) {
-        StringBuilder sb = new StringBuilder();
-        boolean first = true;
-        for (String item : list) {
-            if (first) {
-                first = false;
-            } else {
-                sb.append(",");
-            }
-            sb.append(item);
-        }
-        return sb.toString();
     }
 }

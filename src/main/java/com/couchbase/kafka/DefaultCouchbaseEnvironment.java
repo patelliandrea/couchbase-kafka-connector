@@ -25,11 +25,11 @@ package com.couchbase.kafka;
 import com.couchbase.client.core.env.DefaultCoreEnvironment;
 import com.couchbase.client.core.logging.CouchbaseLogger;
 import com.couchbase.client.core.logging.CouchbaseLoggerFactory;
+import org.apache.kafka.connect.source.SourceTaskContext;
 
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
-import java.util.Properties;
 
 /**
  * @author Sergey Avseyev
@@ -49,6 +49,8 @@ public class DefaultCouchbaseEnvironment extends DefaultCoreEnvironment implemen
     private List<String> couchbaseNodes;
     private String kafkaFilterClass;
 
+    private SourceTaskContext context;
+
 
     public static String SDK_PACKAGE_NAME_AND_VERSION = "couchbase-kafka-connector";
     private static final String VERSION_PROPERTIES = "com.couchbase.kafka.properties";
@@ -60,47 +62,10 @@ public class DefaultCouchbaseEnvironment extends DefaultCoreEnvironment implemen
      * is loaded upfront.
      */
     static {
-        try {
-            Class<CouchbaseConnector> connectorClass = CouchbaseConnector.class;
-            if (connectorClass == null) {
-                throw new IllegalStateException("Could not locate CouchbaseConnector");
-            }
-
-            String version = null;
-            String gitVersion = null;
-            try {
-                Properties versionProp = new Properties();
-                versionProp.load(DefaultCoreEnvironment.class.getClassLoader().getResourceAsStream(VERSION_PROPERTIES));
-                version = versionProp.getProperty("specificationVersion");
-                gitVersion = versionProp.getProperty("implementationVersion");
-            } catch (Exception e) {
-                LOGGER.info("Could not retrieve version properties, defaulting.", e);
-            }
-            SDK_PACKAGE_NAME_AND_VERSION = String.format("couchbase-kafka-connector/%s (git: %s)",
-                    version == null ? "unknown" : version, gitVersion == null ? "unknown" : gitVersion);
-
-            // this will overwrite the USER_AGENT in Core
-            // making core send user_agent with kafka connector version information
-            USER_AGENT = String.format("%s (%s/%s %s; %s %s)",
-                    SDK_PACKAGE_NAME_AND_VERSION,
-                    System.getProperty("os.name"),
-                    System.getProperty("os.version"),
-                    System.getProperty("os.arch"),
-                    System.getProperty("java.vm.name"),
-                    System.getProperty("java.runtime.version")
-            );
-        } catch (Exception ex) {
-            LOGGER.info("Could not set up user agent and packages, defaulting.", ex);
+        Class<CouchbaseConnector> connectorClass = CouchbaseConnector.class;
+        if (connectorClass == null) {
+            throw new IllegalStateException("Could not locate CouchbaseConnector");
         }
-    }
-
-    /**
-     * Creates a {@link CouchbaseEnvironment} with default settings applied.
-     *
-     * @return a {@link DefaultCouchbaseEnvironment} with default settings.
-     */
-    public static DefaultCouchbaseEnvironment create() {
-        return new DefaultCouchbaseEnvironment(builder());
     }
 
     /**
@@ -123,6 +88,7 @@ public class DefaultCouchbaseEnvironment extends DefaultCoreEnvironment implemen
         couchbaseBucket = stringPropertyOr("couchbase.bucket", builder.couchbaseBucket);
         couchbasePassword = stringPropertyOr("couchbase.password", builder.couchbasePassword);
         kafkaFilterClass = stringPropertyOr("kafka.filter.class", builder.kafkaFilterClass);
+        context = builder.context;
     }
 
     @Override
@@ -150,6 +116,9 @@ public class DefaultCouchbaseEnvironment extends DefaultCoreEnvironment implemen
         return kafkaFilterClass;
     }
 
+    @Override
+    public SourceTaskContext getSourceTaskContext() { return context; }
+
     private List<String> stringListPropertyOr(String path, List<String> def) {
         String found = stringPropertyOr(path, null);
         if (found == null) {
@@ -165,6 +134,7 @@ public class DefaultCouchbaseEnvironment extends DefaultCoreEnvironment implemen
         public String couchbaseBucket = COUCHBASE_BUCKET;
         public String couchbasePassword = COUCHBASE_PASSWORD;
         public String kafkaFilterClass = KAFKA_FILTER_CLASS;
+        public SourceTaskContext context;
 
         public Builder() {
             couchbaseNodes = Collections.singletonList(COUCHBASE_NODE);
@@ -197,6 +167,11 @@ public class DefaultCouchbaseEnvironment extends DefaultCoreEnvironment implemen
 
         public Builder kafkaFilterClass(final String kafkaFilterClass) {
             this.kafkaFilterClass = kafkaFilterClass;
+            return this;
+        }
+
+        public Builder setSourceTaskContext(final SourceTaskContext context) {
+            this.context = context;
             return this;
         }
 
