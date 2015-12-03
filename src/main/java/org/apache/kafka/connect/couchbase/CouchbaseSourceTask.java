@@ -92,7 +92,9 @@ public class CouchbaseSourceTask extends SourceTask {
     @Override
     public List<SourceRecord> poll() throws InterruptedException {
         List<SourceRecord> records = new ArrayList<>();
+        // get the queue from couchbase
         Queue<Pair<String, Short>> queue = new LinkedList<>(ConnectWriter.getQueue());
+        // while the queue is empty, waits
         while (queue.isEmpty())
             ConnectWriter.semaphore.wait();
         while (!queue.isEmpty()) {
@@ -105,13 +107,17 @@ public class CouchbaseSourceTask extends SourceTask {
             struct.put("body", message);
 
             Long count = null;
+            // read the offset map for the current partition of couchbase
             Map<String, Object> offsetMap = context.offsetStorageReader().offset(Collections.singletonMap("couchbase", partition));
 
+            // if the map is not null, the offset are already been committed in the past
             if (offsetMap != null)
+                // check if for the current partition there are saved offsets
                 if (offsetMap.get(partition.toString()) != null) {
                     count = (Long) offsetMap.get(partition.toString());
                 }
 
+            // if it's the first commit, get the count for a local map
             if (count == null) {
                 if (committed.get(partition) == null)
                     committed.put(partition, new Long(0));
@@ -119,7 +125,9 @@ public class CouchbaseSourceTask extends SourceTask {
             }
 
             count += 1;
+            // add the record to the list to write to kafka
             records.add(new SourceRecord(Collections.singletonMap("couchbase", partition), Collections.singletonMap(partition.toString(), count), topic, struct.schema(), struct));
+            // set the count of committed messages for the current partition
             committed.put(partition, count);
         }
         return records;

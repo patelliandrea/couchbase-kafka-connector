@@ -36,6 +36,7 @@ public class ConnectWriter implements EventHandler<DCPEvent> {
      */
     @Override
     public void onEvent(final DCPEvent event, final long sequence, final boolean endOfBatch) throws Exception {
+        // if the event passes the filter, the message is added to a queue
         synchronized (queue) {
             if (filter.pass(event)) {
                 if (event.message() instanceof MutationMessage) {

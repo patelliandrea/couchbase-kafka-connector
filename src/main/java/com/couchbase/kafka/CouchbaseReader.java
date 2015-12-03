@@ -172,16 +172,23 @@ public class CouchbaseReader {
                                     oldState.snapshotEndSequenceNumber());
                             state.put(newState);
                         } else {
+                            // partition of the message
                             Short partition = dcpRequest.partition();
+                            // count of messages already been read from the partition
                             Long count = CouchbaseReader.toCommit.get(partition);
+                            // if the count is null, it's the first message to commit
                             count = count == null ? 1 : count;
+                            // counter of the messages for this partition already written to kafka
                             Long position = new Long(0);
                             Map<String, Object> offsets = context.offsetStorageReader().offset(Collections.singletonMap("couchbase", partition));
+                            // if the map is null, no offsets have been committed for the current partition
                             position = offsets == null ? position : (Long) offsets.get(partition.toString());
 
+                            // if we have read more messages than the ones already sent to kafka, it's a newer message
                             if (count > position) {
                                 dcpRingBuffer.tryPublishEvent(TRANSLATOR, dcpRequest);
                             }
+                            // update the counter of consumed messages from couchbase
                             CouchbaseReader.toCommit.put(partition, ++count);
                         }
                     }

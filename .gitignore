@@ -1,8 +1,8 @@
 .#*
 build
 .gradle
-.idea/*
-target
-target/*
+/.idea/*
+/target
+/target/*
 *.iml
-.idea
+/.idea
