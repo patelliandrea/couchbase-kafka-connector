@@ -39,7 +39,7 @@ public class CouchbaseSourceConnector extends SourceConnector {
 
     /**
      * Start this Connector. This method will only be called on a clean Connector, i.e. it has
-     * either just been initantiated and initialized or {@link #stop()} has been invoked.
+     * either just been instantiated and initialized or {@link #stop()} has been invoked.
      *
      * @param props configuration settings
      */
