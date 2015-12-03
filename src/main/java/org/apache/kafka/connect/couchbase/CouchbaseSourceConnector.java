@@ -11,7 +11,10 @@ import java.util.List;
 import java.util.Map;
 
 /**
- * Created by a.patelli on 28/11/2015.
+ * CouchbaseSourceConnector implement the connector interface to pull data from Couchbase
+ * and send it to Kafka.
+ *
+ * @author Andrea Patelli
  */
 public class CouchbaseSourceConnector extends SourceConnector {
     public static final String TOPIC_CONFIG = "topic";
@@ -24,11 +27,22 @@ public class CouchbaseSourceConnector extends SourceConnector {
     private String couchbaseNodes;
     private String couchbaseBucket;
 
+    /**
+     * Get the version of this connector.
+     *
+     * @return the version, formatted as a String
+     */
     @Override
     public String version() {
         return AppInfoParser.getVersion();
     }
 
+    /**
+     * Start this Connector. This method will only be called on a clean Connector, i.e. it has
+     * either just been initantiated and initialized or {@link #stop()} has been invoked.
+     *
+     * @param props configuration settings
+     */
     @Override
     public void start(Map<String, String> props) {
         topic = props.get(TOPIC_CONFIG);
@@ -48,11 +62,21 @@ public class CouchbaseSourceConnector extends SourceConnector {
             throw new ConnectException("Configuration must include 'couchbase.bucket' setting");
     }
 
+    /**
+     * Returns the Task implementation for this Connector
+     */
     @Override
     public Class<? extends Task> taskClass() {
         return CouchbaseSourceTask.class;
     }
 
+    /**
+     * Returns a set of configurations for Tasks based on the current configuration,
+     * producing at most count configurations.
+     *
+     * @param maxTasks maximum number of configurations to generate
+     * @return configurations for Tasks
+     */
     @Override
     public List<Map<String, String>> taskConfigs(int maxTasks) {
         ArrayList<Map<String, String>> configs = new ArrayList<>();
@@ -65,6 +89,9 @@ public class CouchbaseSourceConnector extends SourceConnector {
         return configs;
     }
 
+    /**
+     * Stop this connector.
+     */
     @Override
     public void stop() {
 

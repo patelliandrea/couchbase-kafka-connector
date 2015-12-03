@@ -37,13 +37,8 @@ import com.couchbase.client.core.message.dcp.DCPRequest;
 import com.couchbase.client.core.message.dcp.SnapshotMarkerMessage;
 import com.couchbase.client.deps.com.lmax.disruptor.EventTranslatorOneArg;
 import com.couchbase.client.deps.com.lmax.disruptor.RingBuffer;
-import com.couchbase.kafka.state.RunMode;
 import com.couchbase.kafka.state.StateSerializer;
-import org.apache.kafka.connect.couchbase.CouchbaseSourceTask;
-import org.apache.kafka.connect.couchbase.TestClass;
 import org.apache.kafka.connect.source.SourceTaskContext;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import rx.functions.Action1;
 import rx.functions.Func1;
 
@@ -184,7 +179,7 @@ public class CouchbaseReader {
                             Map<String, Object> offsets = context.offsetStorageReader().offset(Collections.singletonMap("couchbase", partition));
                             position = offsets == null ? position : (Long) offsets.get(partition.toString());
 
-                            if(count > position) {
+                            if (count > position) {
                                 dcpRingBuffer.tryPublishEvent(TRANSLATOR, dcpRequest);
                             }
                             CouchbaseReader.toCommit.put(partition, ++count);

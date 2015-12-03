@@ -55,5 +55,10 @@ public interface CouchbaseEnvironment extends CoreEnvironment {
      */
     String kafkaFilterClass();
 
+    /**
+     * Context of the Source Task, used for storing offsets.
+     *
+     * @return the context of the Source Task
+     */
     SourceTaskContext getSourceTaskContext();
 }

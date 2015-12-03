@@ -117,7 +117,9 @@ public class DefaultCouchbaseEnvironment extends DefaultCoreEnvironment implemen
     }
 
     @Override
-    public SourceTaskContext getSourceTaskContext() { return context; }
+    public SourceTaskContext getSourceTaskContext() {
+        return context;
+    }
 
     private List<String> stringListPropertyOr(String path, List<String> def) {
         String found = stringPropertyOr(path, null);

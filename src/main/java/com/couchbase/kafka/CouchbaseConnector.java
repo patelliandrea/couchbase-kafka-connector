@@ -24,23 +24,15 @@ package com.couchbase.kafka;
 
 import com.couchbase.client.core.ClusterFacade;
 import com.couchbase.client.core.CouchbaseCore;
-import com.couchbase.client.core.dcp.BucketStreamAggregatorState;
-import com.couchbase.client.core.dcp.BucketStreamState;
 import com.couchbase.client.core.logging.CouchbaseLogger;
 import com.couchbase.client.core.logging.CouchbaseLoggerFactory;
-import com.couchbase.client.core.message.kv.GetAllMutationTokensRequest;
-import com.couchbase.client.core.message.kv.GetAllMutationTokensResponse;
-import com.couchbase.client.core.message.kv.MutationToken;
 import com.couchbase.client.deps.com.lmax.disruptor.ExceptionHandler;
 import com.couchbase.client.deps.com.lmax.disruptor.RingBuffer;
 import com.couchbase.client.deps.com.lmax.disruptor.dsl.Disruptor;
 import com.couchbase.client.deps.io.netty.util.concurrent.DefaultThreadFactory;
 import com.couchbase.kafka.filter.Filter;
-import com.couchbase.kafka.state.RunMode;
 import com.couchbase.kafka.state.StateSerializer;
-import org.apache.kafka.connect.source.SourceTaskContext;
 
-import java.util.Collections;
 import java.util.List;
 import java.util.Properties;
 import java.util.concurrent.ExecutorService;
@@ -140,6 +132,7 @@ public class CouchbaseConnector implements Runnable {
         couchbaseReader = new CouchbaseReader(couchbaseNodes, couchbaseBucket, couchbasePassword, core, dcpRingBuffer, stateSerializer, environment.getSourceTaskContext());
         couchbaseReader.connect();
     }
+
     /**
      * Create {@link CouchbaseConnector} with specified settings.
      *

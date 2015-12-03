@@ -10,15 +10,14 @@ import org.apache.kafka.connect.data.Struct;
 import org.apache.kafka.connect.errors.ConnectException;
 import org.apache.kafka.connect.source.SourceRecord;
 import org.apache.kafka.connect.source.SourceTask;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import java.util.*;
-import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.TimeUnit;
 
 /**
- * Created by a.patelli on 28/11/2015.
+ * CouchbaseSourceTask is a Task that pulls records from Couchbase for storage in Kafka.
+ *
+ * @author Andrea Patelli
  */
 public class CouchbaseSourceTask extends SourceTask {
     private static Schema schema = null;
@@ -36,6 +35,11 @@ public class CouchbaseSourceTask extends SourceTask {
         return new CouchbaseSourceConnector().version();
     }
 
+    /**
+     * Start the Task. Handles configuration parsinng and one-time setup of the task.
+     *
+     * @param props initial configuration.
+     */
     @Override
     public void start(Map<String, String> props) {
         topic = props.get(CouchbaseSourceConnector.TOPIC_CONFIG);
@@ -79,10 +83,18 @@ public class CouchbaseSourceTask extends SourceTask {
         connector.run();
     }
 
+    /**
+     * Poll this CouchbaseSourceTask for new records. Block if no data is currently available.
+     *
+     * @return a list of source records
+     * @throws InterruptedException
+     */
     @Override
     public List<SourceRecord> poll() throws InterruptedException {
         List<SourceRecord> records = new ArrayList<>();
         Queue<Pair<String, Short>> queue = new LinkedList<>(ConnectWriter.getQueue());
+        while (queue.isEmpty())
+            ConnectWriter.semaphore.wait();
         while (!queue.isEmpty()) {
             Pair<String, Short> value = queue.poll();
             String message = value.getKey();
@@ -95,12 +107,12 @@ public class CouchbaseSourceTask extends SourceTask {
             Long count = null;
             Map<String, Object> offsetMap = context.offsetStorageReader().offset(Collections.singletonMap("couchbase", partition));
 
-            if(offsetMap != null)
-                if(offsetMap.get(partition.toString()) != null) {
+            if (offsetMap != null)
+                if (offsetMap.get(partition.toString()) != null) {
                     count = (Long) offsetMap.get(partition.toString());
                 }
 
-            if(count == null) {
+            if (count == null) {
                 if (committed.get(partition) == null)
                     committed.put(partition, new Long(0));
                 count = committed.get(partition);
@@ -113,6 +125,10 @@ public class CouchbaseSourceTask extends SourceTask {
         return records;
     }
 
+
+    /**
+     * Signal this SourceTask to stop.
+     */
     @Override
     public void stop() {
     }

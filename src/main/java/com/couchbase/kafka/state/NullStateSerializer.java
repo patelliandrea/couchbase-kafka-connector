@@ -3,12 +3,7 @@ package com.couchbase.kafka.state;
 import com.couchbase.client.core.dcp.BucketStreamAggregatorState;
 import com.couchbase.client.core.dcp.BucketStreamState;
 import com.couchbase.kafka.CouchbaseEnvironment;
-import org.apache.kafka.connect.couchbase.TestClass;
 import org.apache.kafka.connect.source.SourceTaskContext;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
-import java.util.Collections;
 
 /**
  * Created by a.patelli on 28/11/2015.
@@ -40,9 +35,9 @@ public class NullStateSerializer implements StateSerializer {
     @Override
     public BucketStreamAggregatorState load(BucketStreamAggregatorState aggregatorState) {
 //        return new BucketStreamAggregatorState(aggregatorState.name());
-        for(BucketStreamState streamState : aggregatorState) {
+        for (BucketStreamState streamState : aggregatorState) {
             BucketStreamState newState = load(aggregatorState, streamState.partition());
-            if(newState != null) {
+            if (newState != null) {
                 aggregatorState.put(newState, true);
             }
         }
