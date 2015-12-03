@@ -95,8 +95,10 @@ public class CouchbaseSourceTask extends SourceTask {
         // get the queue from couchbase
         Queue<Pair<String, Short>> queue = new LinkedList<>(ConnectWriter.getQueue());
         // while the queue is empty, waits
-        while (queue.isEmpty())
-            ConnectWriter.semaphore.wait();
+//        while (queue.isEmpty())
+//            synchronized (ConnectWriter.semaphore) {
+//                ConnectWriter.semaphore.wait();
+//            }
         while (!queue.isEmpty()) {
             Pair<String, Short> value = queue.poll();
             String message = value.getKey();

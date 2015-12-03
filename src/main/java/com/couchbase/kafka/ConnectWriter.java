@@ -37,14 +37,14 @@ public class ConnectWriter implements EventHandler<DCPEvent> {
     @Override
     public void onEvent(final DCPEvent event, final long sequence, final boolean endOfBatch) throws Exception {
         // if the event passes the filter, the message is added to a queue
-        synchronized (queue) {
-            if (filter.pass(event)) {
-                if (event.message() instanceof MutationMessage) {
+        if (filter.pass(event)) {
+            if (event.message() instanceof MutationMessage) {
+                synchronized (semaphore) {
                     MutationMessage mutation = (MutationMessage) event.message();
                     String message = mutation.content().toString(CharsetUtil.UTF_8);
                     queue.add(new Pair<>(message, ((MutationMessage) event.message()).partition()));
                     mutation.content().release();
-                    semaphore.notifyAll();
+//                    semaphore.notifyAll();
                 }
             }
         }
@@ -57,7 +57,7 @@ public class ConnectWriter implements EventHandler<DCPEvent> {
      */
     public static Queue<Pair<String, Short>> getQueue() {
         Queue<Pair<String, Short>> tmpQueue;
-        synchronized (queue) {
+        synchronized (semaphore) {
             tmpQueue = new LinkedList<>(queue);
             queue.clear();
         }
