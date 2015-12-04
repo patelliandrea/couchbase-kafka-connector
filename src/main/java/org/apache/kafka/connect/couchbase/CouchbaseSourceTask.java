@@ -69,19 +69,13 @@ public class CouchbaseSourceTask extends SourceTask {
 
         DefaultCouchbaseEnvironment.Builder builder =
                 (DefaultCouchbaseEnvironment.Builder) DefaultCouchbaseEnvironment.builder()
-                        .kafkaFilterClass("com.couchbase.kafka.filter.MutationsFilter");
-        builder
-                .couchbaseNodes(couchbaseNodes);
-        builder
-                .couchbaseBucket(couchbaseBucket);
-        builder
-                .couchbaseStateSerializerClass("com.couchbase.kafka.state.NullStateSerializer");
-        builder
-                .dcpEnabled(true);
-        builder
-                .setSourceTaskContext(context);
-        builder
-                .autoreleaseAfter(TimeUnit.SECONDS.toMillis(10L));
+                        .setSourceTaskContext(context)
+                        .kafkaFilterClass("com.couchbase.kafka.filter.MutationsFilter")
+                        .couchbaseNodes(couchbaseNodes)
+                        .couchbaseBucket(couchbaseBucket)
+                        .couchbaseStateSerializerClass("com.couchbase.kafka.state.NullStateSerializer")
+                        .dcpEnabled(true)
+                        .autoreleaseAfter(TimeUnit.SECONDS.toMillis(10L));
         connector = CouchbaseConnector.create(builder.build());
         connector.run();
     }

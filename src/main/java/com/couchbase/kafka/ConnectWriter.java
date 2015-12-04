@@ -21,8 +21,6 @@ public class ConnectWriter implements EventHandler<DCPEvent> {
     private final static Logger log = LoggerFactory.getLogger(ConnectWriter.class);
     private final Filter filter;
 
-    public final static Object semaphore = new Object();
-
     private final static ConcurrentLinkedQueue<Pair<String, Short>> queue = new ConcurrentLinkedQueue<>();
 
     /**
