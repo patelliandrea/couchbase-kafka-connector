@@ -5,6 +5,8 @@ import com.couchbase.client.deps.com.lmax.disruptor.EventHandler;
 import com.couchbase.client.deps.io.netty.util.CharsetUtil;
 import com.couchbase.kafka.filter.Filter;
 import javafx.util.Pair;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.LinkedList;
 import java.util.Queue;
@@ -16,6 +18,7 @@ import java.util.concurrent.ConcurrentLinkedQueue;
  * @author Andrea Patelli
  */
 public class ConnectWriter implements EventHandler<DCPEvent> {
+    private final static Logger log = LoggerFactory.getLogger(ConnectWriter.class);
     private final Filter filter;
 
     public final static Object semaphore = new Object();
@@ -39,12 +42,12 @@ public class ConnectWriter implements EventHandler<DCPEvent> {
         // if the event passes the filter, the message is added to a queue
         if (filter.pass(event)) {
             if (event.message() instanceof MutationMessage) {
-                synchronized (semaphore) {
+                synchronized (ConnectWriter.class) {
                     MutationMessage mutation = (MutationMessage) event.message();
                     String message = mutation.content().toString(CharsetUtil.UTF_8);
                     queue.add(new Pair<>(message, ((MutationMessage) event.message()).partition()));
                     mutation.content().release();
-//                    semaphore.notifyAll();
+                    ConnectWriter.class.notifyAll();
                 }
             }
         }
@@ -57,10 +60,19 @@ public class ConnectWriter implements EventHandler<DCPEvent> {
      */
     public static Queue<Pair<String, Short>> getQueue() {
         Queue<Pair<String, Short>> tmpQueue;
-        synchronized (semaphore) {
-            tmpQueue = new LinkedList<>(queue);
-            queue.clear();
+        synchronized (ConnectWriter.class) {
+            tmpQueue = new LinkedList<>();
+            for(int i = 0; i < 100 && !queue.isEmpty(); i++)
+                tmpQueue.add(queue.poll());
+//            tmpQueue = new LinkedList<>(queue);
+//            queue.clear();
         }
         return new LinkedList<>(tmpQueue);
+    }
+
+    public static int queueSize() {
+        synchronized (ConnectWriter.class) {
+            return queue.size();
+        }
     }
 }

@@ -10,6 +10,8 @@ import org.apache.kafka.connect.data.Struct;
 import org.apache.kafka.connect.errors.ConnectException;
 import org.apache.kafka.connect.source.SourceRecord;
 import org.apache.kafka.connect.source.SourceTask;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.*;
 import java.util.concurrent.TimeUnit;
@@ -20,6 +22,7 @@ import java.util.concurrent.TimeUnit;
  * @author Andrea Patelli
  */
 public class CouchbaseSourceTask extends SourceTask {
+    private final static Logger log = LoggerFactory.getLogger(CouchbaseSourceTask.class);
     private static Schema schema = null;
     private String topic;
     private String schemaName;
@@ -95,10 +98,11 @@ public class CouchbaseSourceTask extends SourceTask {
         // get the queue from couchbase
         Queue<Pair<String, Short>> queue = new LinkedList<>(ConnectWriter.getQueue());
         // while the queue is empty, waits
-//        while (queue.isEmpty())
-//            synchronized (ConnectWriter.semaphore) {
-//                ConnectWriter.semaphore.wait();
-//            }
+        while (queue.isEmpty())
+            synchronized (ConnectWriter.class) {
+                ConnectWriter.class.wait();
+                queue = new LinkedList<>(ConnectWriter.getQueue());
+            }
         while (!queue.isEmpty()) {
             Pair<String, Short> value = queue.poll();
             String message = value.getKey();
