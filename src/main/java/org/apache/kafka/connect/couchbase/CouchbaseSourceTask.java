@@ -29,7 +29,7 @@ public class CouchbaseSourceTask extends SourceTask {
     private String couchbaseNodes;
     private String couchbaseBucket;
     private Integer taskBulkSize;
-    private Integer taskPollFrequency;
+//    private Integer taskPollFrequency;
 
     private static CouchbaseConnector connector;
 
@@ -64,11 +64,11 @@ public class CouchbaseSourceTask extends SourceTask {
         } catch(Exception e) {
             taskBulkSize = 200;
         }
-        try {
-            taskPollFrequency = Integer.parseInt(props.get(CouchbaseSourceConnector.TASK_POLL_FREQUENCY));
-        } catch(Exception e) {
-            taskPollFrequency = 1000;
-        }
+//        try {
+//            taskPollFrequency = Integer.parseInt(props.get(CouchbaseSourceConnector.TASK_POLL_FREQUENCY));
+//        } catch(Exception e) {
+//            taskPollFrequency = 1000;
+//        }
 
         schema = SchemaBuilder
                 .struct()
@@ -107,7 +107,8 @@ public class CouchbaseSourceTask extends SourceTask {
         // while the queue is empty, waits
         while (queue.isEmpty()) {
             synchronized (ConnectWriter.test) {
-                ConnectWriter.test.wait(taskPollFrequency);
+//                ConnectWriter.test.wait(taskPollFrequency);
+                ConnectWriter.test.wait();
                 queue = new LinkedList<>(ConnectWriter.getQueue());
             }
         }

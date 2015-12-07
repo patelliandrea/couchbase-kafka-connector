@@ -48,7 +48,7 @@ public class ConnectWriter implements EventHandler<DCPEvent> {
                     String message = mutation.content().toString(CharsetUtil.UTF_8);
                     queue.add(new Pair<>(message, ((MutationMessage) event.message()).partition()));
                     mutation.content().release();
-//                    ConnectWriter.class.notifyAll();
+                    ConnectWriter.test.notifyAll();
                 }
             }
         }
