@@ -21,11 +21,15 @@ public class CouchbaseSourceConnector extends SourceConnector {
     public static final String SCHEMA_NAME = "schema.name";
     public static final String COUCHBASE_NODES = "couchbase.nodes";
     public static final String COUCHBASE_BUCKET = "couchbase.bucket";
+    public static final String TASK_BULK_SIZE = "task.bulk.size";
+    public static final String TASK_POLL_FREQUENCY = "task.poll.frequency";
 
     private String topic;
     private String schemaName;
     private String couchbaseNodes;
     private String couchbaseBucket;
+    private String taskBulkSize;
+    private String taskPollFrequency;
 
     /**
      * Get the version of this connector.
@@ -49,6 +53,8 @@ public class CouchbaseSourceConnector extends SourceConnector {
         schemaName = props.get(SCHEMA_NAME);
         couchbaseNodes = props.get(COUCHBASE_NODES);
         couchbaseBucket = props.get(COUCHBASE_BUCKET);
+        taskBulkSize = props.get(TASK_BULK_SIZE);
+        taskPollFrequency = props.get(TASK_POLL_FREQUENCY);
 
         if (topic == null || topic.isEmpty())
             throw new ConnectException("Configuration must include 'topic' setting");
@@ -60,6 +66,20 @@ public class CouchbaseSourceConnector extends SourceConnector {
             throw new ConnectException("Configuration must include 'couchbase.nodes' setting");
         if (couchbaseBucket == null || couchbaseBucket.isEmpty())
             throw new ConnectException("Configuration must include 'couchbase.bucket' setting");
+        if(taskPollFrequency != null) {
+            try {
+                Integer.parseInt(taskPollFrequency);
+            } catch(Exception e) {
+                throw new ConnectException("'task.poll.frequency' setting should be an integer");
+            }
+        }
+        if(taskBulkSize != null) {
+            try {
+                Integer.parseInt(taskBulkSize);
+            } catch(Exception e) {
+                throw new ConnectException("'task.bulk.size' setting should be an integer");
+            }
+        }
     }
 
     /**
@@ -85,6 +105,8 @@ public class CouchbaseSourceConnector extends SourceConnector {
         config.put(SCHEMA_NAME, schemaName);
         config.put(COUCHBASE_NODES, couchbaseNodes);
         config.put(COUCHBASE_BUCKET, couchbaseBucket);
+        config.put(TASK_BULK_SIZE, taskBulkSize);
+        config.put(TASK_POLL_FREQUENCY, taskPollFrequency);
         configs.add(config);
         return configs;
     }

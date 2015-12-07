@@ -42,12 +42,14 @@ public class DefaultCouchbaseEnvironment extends DefaultCoreEnvironment implemen
     private static final String COUCHBASE_PASSWORD = "";
     private static final String COUCHBASE_NODE = "127.0.0.1";
     private static final String KAFKA_FILTER_CLASS = "com.couchbase.kafka.filter.MutationsFilter";
+    private static final Integer BULK_SIZE = 200;
 
     private String couchbaseStateSerializerClass;
     private String couchbasePassword;
     private String couchbaseBucket;
     private List<String> couchbaseNodes;
     private String kafkaFilterClass;
+    private Integer bulkSize;
 
     private SourceTaskContext context;
 
@@ -88,6 +90,7 @@ public class DefaultCouchbaseEnvironment extends DefaultCoreEnvironment implemen
         couchbaseBucket = stringPropertyOr("couchbase.bucket", builder.couchbaseBucket);
         couchbasePassword = stringPropertyOr("couchbase.password", builder.couchbasePassword);
         kafkaFilterClass = stringPropertyOr("kafka.filter.class", builder.kafkaFilterClass);
+        bulkSize = intPropertyOr("task.bulk.size", builder.bulkSize);
         context = builder.context;
     }
 
@@ -117,6 +120,11 @@ public class DefaultCouchbaseEnvironment extends DefaultCoreEnvironment implemen
     }
 
     @Override
+    public Integer bulkSize() {
+        return bulkSize;
+    }
+
+    @Override
     public SourceTaskContext getSourceTaskContext() {
         return context;
     }
@@ -136,6 +144,7 @@ public class DefaultCouchbaseEnvironment extends DefaultCoreEnvironment implemen
         public String couchbaseBucket = COUCHBASE_BUCKET;
         public String couchbasePassword = COUCHBASE_PASSWORD;
         public String kafkaFilterClass = KAFKA_FILTER_CLASS;
+        public Integer bulkSize = BULK_SIZE;
         public SourceTaskContext context;
 
         public Builder() {
@@ -174,6 +183,11 @@ public class DefaultCouchbaseEnvironment extends DefaultCoreEnvironment implemen
 
         public Builder setSourceTaskContext(final SourceTaskContext context) {
             this.context = context;
+            return this;
+        }
+
+        public Builder bulkSize(final Integer bulkSize) {
+            this.bulkSize = bulkSize;
             return this;
         }
 

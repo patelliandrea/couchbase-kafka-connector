@@ -28,6 +28,8 @@ public class CouchbaseSourceTask extends SourceTask {
     private String schemaName;
     private String couchbaseNodes;
     private String couchbaseBucket;
+    private Integer taskBulkSize;
+    private Integer taskPollFrequency;
 
     private static CouchbaseConnector connector;
 
@@ -57,6 +59,16 @@ public class CouchbaseSourceTask extends SourceTask {
         couchbaseBucket = props.get(CouchbaseSourceConnector.COUCHBASE_BUCKET);
         if (couchbaseBucket == null)
             throw new ConnectException("CouchbaseSourceTask config missing couchbaseBucket setting");
+        try {
+            taskBulkSize = Integer.parseInt(props.get(CouchbaseSourceConnector.TASK_BULK_SIZE));
+        } catch(Exception e) {
+            taskBulkSize = 200;
+        }
+        try {
+            taskPollFrequency = Integer.parseInt(props.get(CouchbaseSourceConnector.TASK_POLL_FREQUENCY));
+        } catch(Exception e) {
+            taskPollFrequency = 1000;
+        }
 
         schema = SchemaBuilder
                 .struct()
@@ -74,6 +86,7 @@ public class CouchbaseSourceTask extends SourceTask {
                         .couchbaseNodes(couchbaseNodes)
                         .couchbaseBucket(couchbaseBucket)
                         .couchbaseStateSerializerClass("com.couchbase.kafka.state.NullStateSerializer")
+                        .bulkSize(taskBulkSize)
                         .dcpEnabled(true)
                         .autoreleaseAfter(TimeUnit.SECONDS.toMillis(10L));
         connector = CouchbaseConnector.create(builder.build());
@@ -90,13 +103,15 @@ public class CouchbaseSourceTask extends SourceTask {
     public List<SourceRecord> poll() throws InterruptedException {
         List<SourceRecord> records = new ArrayList<>();
         // get the queue from couchbase
-        Queue<Pair<String, Short>> queue = new LinkedList<>(ConnectWriter.getQueue());
+        Queue<Pair<String, Short>> queue = new LinkedList<>();
         // while the queue is empty, waits
-        while (queue.isEmpty())
-            synchronized (ConnectWriter.class) {
-                ConnectWriter.class.wait();
+        while (queue.isEmpty()) {
+            synchronized (ConnectWriter.test) {
+                ConnectWriter.test.wait(taskPollFrequency);
                 queue = new LinkedList<>(ConnectWriter.getQueue());
             }
+        }
+        log.trace("queue size {}", queue.size());
         while (!queue.isEmpty()) {
             Pair<String, Short> value = queue.poll();
             String message = value.getKey();

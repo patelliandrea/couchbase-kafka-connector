@@ -125,7 +125,7 @@ public class CouchbaseConnector implements Runnable {
         });
 
         final Properties props = new Properties();
-        writer = new ConnectWriter(filter);
+        writer = new ConnectWriter(filter, environment.bulkSize());
         disruptor.handleEventsWith(writer);
         disruptor.start();
         dcpRingBuffer = disruptor.getRingBuffer();

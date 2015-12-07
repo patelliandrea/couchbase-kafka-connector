@@ -61,4 +61,6 @@ public interface CouchbaseEnvironment extends CoreEnvironment {
      * @return the context of the Source Task
      */
     SourceTaskContext getSourceTaskContext();
+
+    Integer bulkSize();
 }
