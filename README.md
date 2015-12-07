@@ -30,5 +30,6 @@ couchbase.nodes=localhost
 couchbase.bucket=beer-sample
 # max number of tasks to run
 tasks.max=1
-task.max.batch.size=200
+task.bulk.size=200
+task.poll.frequency=1000
 ```
