@@ -28,7 +28,7 @@ public class CouchbaseSourceTask extends SourceTask {
     private String schemaName;
     private String couchbaseNodes;
     private String couchbaseBucket;
-    private Integer taskBulkSize;
+    private Integer taskBatchSize;
     private Integer taskPollFrequency;
 
     private static CouchbaseConnector connector;
@@ -60,9 +60,9 @@ public class CouchbaseSourceTask extends SourceTask {
         if (couchbaseBucket == null)
             throw new ConnectException("CouchbaseSourceTask config missing couchbaseBucket setting");
         try {
-            taskBulkSize = Integer.parseInt(props.get(CouchbaseSourceConnector.TASK_BULK_SIZE));
+            taskBatchSize = Integer.parseInt(props.get(CouchbaseSourceConnector.TASK_BATCH_SIZE));
         } catch (Exception e) {
-            taskBulkSize = 200;
+            taskBatchSize = 200;
         }
         try {
             taskPollFrequency = Integer.parseInt(props.get(CouchbaseSourceConnector.TASK_POLL_FREQUENCY));
@@ -86,7 +86,7 @@ public class CouchbaseSourceTask extends SourceTask {
                         .couchbaseNodes(couchbaseNodes)
                         .couchbaseBucket(couchbaseBucket)
                         .couchbaseStateSerializerClass("com.couchbase.kafka.state.NullStateSerializer")
-                        .bulkSize(taskBulkSize)
+                        .batchSize(taskBatchSize)
                         .dcpEnabled(true)
                         .autoreleaseAfter(TimeUnit.SECONDS.toMillis(10L));
         connector = CouchbaseConnector.create(builder.build());

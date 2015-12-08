@@ -20,7 +20,7 @@ import java.util.concurrent.ConcurrentLinkedQueue;
 public class ConnectWriter implements EventHandler<DCPEvent> {
     private final static Logger log = LoggerFactory.getLogger(ConnectWriter.class);
     private final Filter filter;
-    private static Integer bulkSize;
+    private static Integer batchSize;
 
     private final static ConcurrentLinkedQueue<Pair<String, Short>> queue = new ConcurrentLinkedQueue<>();
 
@@ -31,9 +31,9 @@ public class ConnectWriter implements EventHandler<DCPEvent> {
      *
      * @param filter the filter to select events to publish.
      */
-    public ConnectWriter(final Filter filter, Integer bulkSize) {
+    public ConnectWriter(final Filter filter, Integer batchSize) {
         this.filter = filter;
-        this.bulkSize = bulkSize;
+        this.batchSize = batchSize;
     }
 
     /**
@@ -64,7 +64,7 @@ public class ConnectWriter implements EventHandler<DCPEvent> {
         Queue<Pair<String, Short>> tmpQueue;
         synchronized (sync) {
             tmpQueue = new LinkedList<>();
-            for (int i = 0; i < bulkSize && !queue.isEmpty(); i++)
+            for (int i = 0; i < batchSize && !queue.isEmpty(); i++)
                 tmpQueue.add(queue.poll());
         }
         return new LinkedList<>(tmpQueue);

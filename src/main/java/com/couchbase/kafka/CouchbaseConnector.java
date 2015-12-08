@@ -34,7 +34,6 @@ import com.couchbase.kafka.filter.Filter;
 import com.couchbase.kafka.state.StateSerializer;
 
 import java.util.List;
-import java.util.Properties;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
@@ -124,8 +123,7 @@ public class CouchbaseConnector implements Runnable {
             }
         });
 
-        final Properties props = new Properties();
-        writer = new ConnectWriter(filter, environment.bulkSize());
+        writer = new ConnectWriter(filter, environment.batchSize());
         disruptor.handleEventsWith(writer);
         disruptor.start();
         dcpRingBuffer = disruptor.getRingBuffer();

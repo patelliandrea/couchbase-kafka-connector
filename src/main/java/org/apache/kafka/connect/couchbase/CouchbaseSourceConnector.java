@@ -21,14 +21,14 @@ public class CouchbaseSourceConnector extends SourceConnector {
     public static final String SCHEMA_NAME = "schema.name";
     public static final String COUCHBASE_NODES = "couchbase.nodes";
     public static final String COUCHBASE_BUCKET = "couchbase.bucket";
-    public static final String TASK_BULK_SIZE = "task.max.batch.size";
+    public static final String TASK_BATCH_SIZE = "task.max.batch.size";
     public static final String TASK_POLL_FREQUENCY = "task.poll.frequency";
 
     private String topic;
     private String schemaName;
     private String couchbaseNodes;
     private String couchbaseBucket;
-    private String taskBulkSize;
+    private String taskBatchSize;
     private String taskPollFrequency;
 
     /**
@@ -53,7 +53,7 @@ public class CouchbaseSourceConnector extends SourceConnector {
         schemaName = props.get(SCHEMA_NAME);
         couchbaseNodes = props.get(COUCHBASE_NODES);
         couchbaseBucket = props.get(COUCHBASE_BUCKET);
-        taskBulkSize = props.get(TASK_BULK_SIZE);
+        taskBatchSize = props.get(TASK_BATCH_SIZE);
         taskPollFrequency = props.get(TASK_POLL_FREQUENCY);
 
         if (topic == null || topic.isEmpty())
@@ -73,11 +73,11 @@ public class CouchbaseSourceConnector extends SourceConnector {
                 throw new ConnectException("'task.poll.frequency' setting should be an integer");
             }
         }
-        if (taskBulkSize != null) {
+        if (taskBatchSize != null) {
             try {
-                Integer.parseInt(taskBulkSize);
+                Integer.parseInt(taskBatchSize);
             } catch (Exception e) {
-                throw new ConnectException("'task.bulk.size' setting should be an integer");
+                throw new ConnectException("'task.batch.size' setting should be an integer");
             }
         }
     }
@@ -105,7 +105,7 @@ public class CouchbaseSourceConnector extends SourceConnector {
         config.put(SCHEMA_NAME, schemaName);
         config.put(COUCHBASE_NODES, couchbaseNodes);
         config.put(COUCHBASE_BUCKET, couchbaseBucket);
-        config.put(TASK_BULK_SIZE, taskBulkSize);
+        config.put(TASK_BATCH_SIZE, taskBatchSize);
         config.put(TASK_POLL_FREQUENCY, taskPollFrequency);
         configs.add(config);
         return configs;
