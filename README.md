@@ -15,7 +15,7 @@ standard lifecycle phases.
 
 Example of the configuration file:
 
-```
+``` ini
 # the name of the connector
 name=couchbase-source
 # the class of the Connector
