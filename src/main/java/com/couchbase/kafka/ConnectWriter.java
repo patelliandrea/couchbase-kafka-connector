@@ -24,7 +24,8 @@ public class ConnectWriter implements EventHandler<DCPEvent> {
 
     private final static ConcurrentLinkedQueue<Pair<String, Short>> queue = new ConcurrentLinkedQueue<>();
 
-    public final static Object test = new Object();
+    public final static Object sync = new Object();
+
     /**
      * Creates a new {@link ConnectWriter}.
      *
@@ -43,7 +44,7 @@ public class ConnectWriter implements EventHandler<DCPEvent> {
         // if the event passes the filter, the message is added to a queue
         if (filter.pass(event)) {
             if (event.message() instanceof MutationMessage) {
-                synchronized (test) {
+                synchronized (sync) {
                     MutationMessage mutation = (MutationMessage) event.message();
                     String message = mutation.content().toString(CharsetUtil.UTF_8);
                     queue.add(new Pair<>(message, ((MutationMessage) event.message()).partition()));
@@ -61,19 +62,11 @@ public class ConnectWriter implements EventHandler<DCPEvent> {
      */
     public static Queue<Pair<String, Short>> getQueue() {
         Queue<Pair<String, Short>> tmpQueue;
-        synchronized (test) {
+        synchronized (sync) {
             tmpQueue = new LinkedList<>();
-            for(int i = 0; i < bulkSize && !queue.isEmpty(); i++)
+            for (int i = 0; i < bulkSize && !queue.isEmpty(); i++)
                 tmpQueue.add(queue.poll());
-//            tmpQueue = new LinkedList<>(queue);
-//            queue.clear();
         }
         return new LinkedList<>(tmpQueue);
-    }
-
-    public static int queueSize() {
-        synchronized (ConnectWriter.class) {
-            return queue.size();
-        }
     }
 }

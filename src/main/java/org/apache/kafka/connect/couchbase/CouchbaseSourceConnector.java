@@ -66,17 +66,17 @@ public class CouchbaseSourceConnector extends SourceConnector {
             throw new ConnectException("Configuration must include 'couchbase.nodes' setting");
         if (couchbaseBucket == null || couchbaseBucket.isEmpty())
             throw new ConnectException("Configuration must include 'couchbase.bucket' setting");
-        if(taskPollFrequency != null) {
+        if (taskPollFrequency != null) {
             try {
                 Integer.parseInt(taskPollFrequency);
-            } catch(Exception e) {
+            } catch (Exception e) {
                 throw new ConnectException("'task.poll.frequency' setting should be an integer");
             }
         }
-        if(taskBulkSize != null) {
+        if (taskBulkSize != null) {
             try {
                 Integer.parseInt(taskBulkSize);
-            } catch(Exception e) {
+            } catch (Exception e) {
                 throw new ConnectException("'task.bulk.size' setting should be an integer");
             }
         }

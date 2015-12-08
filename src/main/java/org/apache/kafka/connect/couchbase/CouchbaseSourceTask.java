@@ -61,12 +61,12 @@ public class CouchbaseSourceTask extends SourceTask {
             throw new ConnectException("CouchbaseSourceTask config missing couchbaseBucket setting");
         try {
             taskBulkSize = Integer.parseInt(props.get(CouchbaseSourceConnector.TASK_BULK_SIZE));
-        } catch(Exception e) {
+        } catch (Exception e) {
             taskBulkSize = 200;
         }
         try {
             taskPollFrequency = Integer.parseInt(props.get(CouchbaseSourceConnector.TASK_POLL_FREQUENCY));
-        } catch(Exception e) {
+        } catch (Exception e) {
             taskPollFrequency = 1000;
         }
 
@@ -103,15 +103,13 @@ public class CouchbaseSourceTask extends SourceTask {
     public List<SourceRecord> poll() throws InterruptedException {
         List<SourceRecord> records = new ArrayList<>();
         // get the queue from couchbase
-        Queue<Pair<String, Short>> queue = new LinkedList<>();
-        // while the queue is empty, waits
-        while (queue.isEmpty()) {
-            synchronized (ConnectWriter.test) {
-                ConnectWriter.test.wait(taskPollFrequency);
-                queue = new LinkedList<>(ConnectWriter.getQueue());
-            }
+        Queue<Pair<String, Short>> queue;
+
+        synchronized (ConnectWriter.sync) {
+            ConnectWriter.sync.wait(taskPollFrequency);
+            queue = new LinkedList<>(ConnectWriter.getQueue());
         }
-        log.info("queue size {}", queue.size());
+
         while (!queue.isEmpty()) {
             Pair<String, Short> value = queue.poll();
             String message = value.getKey();
