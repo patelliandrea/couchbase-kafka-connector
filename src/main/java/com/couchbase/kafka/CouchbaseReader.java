@@ -39,6 +39,8 @@ import com.couchbase.client.deps.com.lmax.disruptor.EventTranslatorOneArg;
 import com.couchbase.client.deps.com.lmax.disruptor.RingBuffer;
 import com.couchbase.kafka.state.StateSerializer;
 import org.apache.kafka.connect.source.SourceTaskContext;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import rx.functions.Action1;
 import rx.functions.Func1;
 
@@ -54,6 +56,7 @@ import java.util.concurrent.TimeUnit;
  * @author Sergey Avseyev
  */
 public class CouchbaseReader {
+    private final static Logger log = LoggerFactory.getLogger(CouchbaseReader.class);
     private final static Map<Short, Long> toCommit = new HashMap<>(0);
 
     private static final EventTranslatorOneArg<DCPEvent, CouchbaseMessage> TRANSLATOR =
@@ -186,6 +189,9 @@ public class CouchbaseReader {
 
                             // if we have read more messages than the ones already sent to kafka, it's a newer message
                             if (count > position) {
+                                log.trace("position {}", position);
+                                log.trace("count {}", count);
+                                log.trace("partition {}", partition);
                                 dcpRingBuffer.tryPublishEvent(TRANSLATOR, dcpRequest);
                             }
                             // update the counter of consumed messages from couchbase

@@ -135,10 +135,15 @@ public class CouchbaseSourceTask extends SourceTask {
                 if (committed.get(partition) == null)
                     committed.put(partition, new Long(0));
                 count = committed.get(partition);
+            } else {
+                // else get the bigger of the saved offsets
+                if (committed.get(partition) != null)
+                    count = count > committed.get(partition) ? count : committed.get(partition);
             }
 
             count += 1;
             // add the record to the list to write to kafka
+            log.trace("adding record to partition {} with count {}", partition, count);
             records.add(new SourceRecord(Collections.singletonMap("couchbase", partition), Collections.singletonMap(partition.toString(), count), topic, struct.schema(), struct));
             // set the count of committed messages for the current partition
             committed.put(partition, count);
