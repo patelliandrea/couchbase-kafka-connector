@@ -40,7 +40,7 @@ public class ConnectWriter {
             // if the event passes the filter, the message is added to a queue
             if (filter.pass(event)) {
                 MutationMessage mutation = (MutationMessage) event.message();
-                String message = new String(mutation.content().toString(CharsetUtil.UTF_8));
+                String message = mutation.content().toString(CharsetUtil.UTF_8);
                 queue.add(new Pair<>(message, ((MutationMessage) event.message()).partition()));
                 mutation.content().release();
             } else if (event.message() instanceof MutationMessage) {
