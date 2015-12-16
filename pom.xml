@@ -10,7 +10,7 @@
     <repositories>
         <!-- using local repository in order to use com.couchbase.client:core-io:1.2.3 -->
         <repository>
-            <url>file://${project.basedir}\repos</url>
+            <url>file://${project.basedir}/repos</url>
             <id>localRepository</id>
         </repository>
     </repositories>

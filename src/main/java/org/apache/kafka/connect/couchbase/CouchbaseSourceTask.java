@@ -1,6 +1,7 @@
 package org.apache.kafka.connect.couchbase;
 
 import com.couchbase.client.core.dcp.BucketStreamAggregatorState;
+import com.couchbase.client.core.dcp.BucketStreamState;
 import com.couchbase.kafka.ConnectWriter;
 import com.couchbase.kafka.CouchbaseConnector;
 import com.couchbase.kafka.DefaultCouchbaseEnvironment;
@@ -95,23 +96,24 @@ public class CouchbaseSourceTask extends SourceTask {
         connector = CouchbaseConnector.create(builder.build());
 
 
-        BucketStreamAggregatorState state = new BucketStreamAggregatorState();
-        BucketStreamAggregatorState currentState = connector.buildState(Direction.FROM_CURRENT);
-
-//        for(short i = 0; i < 1023; i++) {
-//            BucketStreamState partitionState = currentState.get(i);
-//            Map<String, Object> offsetMap = context.offsetStorageReader().offset(Collections.singletonMap("couchbase", i));
-//            int currentOffset = 0;
-//            if(offsetMap != null) {
-//                try {
-//                    currentOffset = Integer.parseInt((String) offsetMap.get(Integer.toString(i)));
-//                } catch(Exception e) {
-//                    currentOffset = 0;
-//                }
-//            }
-//            state.put(new BucketStreamState(partitionState.partition(), partitionState.vbucketUUID(), currentOffset, 0xffffffff, currentOffset, 0xffffffff));
-//        }
-//        connector.run(state, RunMode.RESUME);
+       //  BucketStreamAggregatorState state = new BucketStreamAggregatorState();
+       //  BucketStreamAggregatorState currentState = connector.buildState(Direction.FROM_CURRENT);
+       //  int total = 0;
+       //  for (BucketStreamState partitionState : currentState) {
+       //      Short partition = partitionState.partition();
+       //     Map<String, Object> offsetMap = context.offsetStorageReader().offset(Collections.singletonMap("couchbase", partition));
+       //     Long currentOffset = new Long(0);
+       //     if(offsetMap != null) {
+       //         currentOffset = (Long)offsetMap.get(partition.toString());
+       //         if(currentOffset == null)
+       //              currentOffset = new Long(0);
+       //     }
+       //     log.warn("init {} {}", partition, currentOffset);
+       //      state.put(new BucketStreamState(partition, partitionState.vbucketUUID(), currentOffset, 0xffffffff, currentOffset, 0xffffffff));
+       //      total += currentOffset;
+       // }
+       // log.warn("total {}", total);
+       // connector.run(state, RunMode.RESUME);
         connector.run(RunMode.LOAD_AND_RESUME);
     }
 
@@ -127,8 +129,6 @@ public class CouchbaseSourceTask extends SourceTask {
         // get the queue from couchbase
         Queue<Pair<String, Short>> queue;
         queue = new LinkedList<>(ConnectWriter.getQueue());
-        if(!queue.isEmpty())
-            log.info("queue size {}", queue.size());
         while (!queue.isEmpty()) {
             Pair<String, Short> value = queue.poll();
             String message = value.getKey();
@@ -162,9 +162,10 @@ public class CouchbaseSourceTask extends SourceTask {
 
             count += 1;
             // add the record to the list to write to kafka
-            log.info("adding record to partition {} with count {}", partition, count);
+            log.trace("adding record to partition {} with count {}", partition, count);
             records.add(new SourceRecord(Collections.singletonMap("couchbase", partition), Collections.singletonMap(partition.toString(), count), topic, struct.schema(), struct));
             // set the count of committed messages for the current partition
+            committed.put(partition, count);
         }
         return records;
     }

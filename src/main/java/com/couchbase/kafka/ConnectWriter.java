@@ -43,10 +43,11 @@ public class ConnectWriter {
                 String message = new String(mutation.content().toString(CharsetUtil.UTF_8));
                 queue.add(new Pair<>(message, ((MutationMessage) event.message()).partition()));
                 mutation.content().release();
-            } else if (event.message() instanceof MutationMessage) {
-                MutationMessage mutation = (MutationMessage) event.message();
-                mutation.content().release();
-            }
+            } 
+            // else if (event.message() instanceof MutationMessage) {
+            //     MutationMessage mutation = (MutationMessage) event.message();
+            //     mutation.content().release();
+            // }
         }
     }
 

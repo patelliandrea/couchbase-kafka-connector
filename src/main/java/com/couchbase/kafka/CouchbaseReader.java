@@ -162,7 +162,7 @@ public class CouchbaseReader {
                 });
 
         aggregator.feed(state)
-                .toBlocking()
+                // .toBlocking()
                 .forEach(new Action1<DCPRequest>() {
                     @Override
                     public void call(final DCPRequest dcpRequest) {
