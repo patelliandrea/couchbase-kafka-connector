@@ -127,6 +127,8 @@ public class CouchbaseSourceTask extends SourceTask {
         // get the queue from couchbase
         Queue<Pair<String, Short>> queue;
         queue = new LinkedList<>(ConnectWriter.getQueue());
+        if(!queue.isEmpty())
+            log.info("queue size {}", queue.size());
         while (!queue.isEmpty()) {
             Pair<String, Short> value = queue.poll();
             String message = value.getKey();
@@ -160,7 +162,7 @@ public class CouchbaseSourceTask extends SourceTask {
 
             count += 1;
             // add the record to the list to write to kafka
-            log.trace("adding record to partition {} with count {}", partition, count);
+            log.info("adding record to partition {} with count {}", partition, count);
             records.add(new SourceRecord(Collections.singletonMap("couchbase", partition), Collections.singletonMap(partition.toString(), count), topic, struct.schema(), struct));
             // set the count of committed messages for the current partition
         }
