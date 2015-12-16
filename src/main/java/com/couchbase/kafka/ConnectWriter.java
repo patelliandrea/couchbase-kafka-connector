@@ -35,16 +35,18 @@ public class ConnectWriter {
         this.batchSize = batchSize;
     }
 
-    public synchronized void addToQueue(final DCPEvent event) {
-        // if the event passes the filter, the message is added to a queue
-        if (filter.pass(event)) {
+    public void addToQueue(final DCPEvent event) {
+        synchronized(sync) {
+            // if the event passes the filter, the message is added to a queue
+            if (filter.pass(event)) {
                 MutationMessage mutation = (MutationMessage) event.message();
                 String message = new String(mutation.content().toString(CharsetUtil.UTF_8));
                 queue.add(new Pair<>(message, ((MutationMessage) event.message()).partition()));
                 mutation.content().release();
-        } else if(event.message() instanceof MutationMessage) {
-            MutationMessage mutation = (MutationMessage) event.message();
-            mutation.content().release();
+            } else if (event.message() instanceof MutationMessage) {
+                MutationMessage mutation = (MutationMessage) event.message();
+                mutation.content().release();
+            }
         }
     }
 
@@ -53,11 +55,13 @@ public class ConnectWriter {
      *
      * @return a copy of the queue
      */
-    public synchronized static Queue<Pair<String, Short>> getQueue() {
-        Queue<Pair<String, Short>> tmpQueue;
+    public static Queue<Pair<String, Short>> getQueue() {
+        synchronized (sync) {
+            Queue<Pair<String, Short>> tmpQueue;
             tmpQueue = new LinkedList<>();
             for (int i = 0; i < batchSize && !queue.isEmpty(); i++)
                 tmpQueue.add(queue.poll());
-        return new LinkedList<>(tmpQueue);
+            return new LinkedList<>(tmpQueue);
+        }
     }
 }

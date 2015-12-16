@@ -3,6 +3,7 @@ package com.couchbase.kafka.state;
 import com.couchbase.client.core.dcp.BucketStreamAggregatorState;
 import com.couchbase.client.core.dcp.BucketStreamState;
 import com.couchbase.kafka.CouchbaseEnvironment;
+import org.apache.kafka.connect.couchbase.CouchbaseSourceTask;
 import org.apache.kafka.connect.source.SourceTaskContext;
 
 import java.util.Collections;

@@ -178,12 +178,10 @@ public class CouchbaseReader {
                                     oldState.snapshotEndSequenceNumber());
                             state.put(newState);
                         } else {
-                            count++;
-                            log.warn("count {}", count);
-//                            try {
-//                                ((MutationMessage)converter.toEvent(dcpRequest).message()).content().release();
-//                            } catch(Exception e) {}
-//                            writer.addToQueue(converter.toEvent(dcpRequest));
+                            try {
+                                ((MutationMessage)converter.toEvent(dcpRequest).message()).content().release();
+                            } catch(Exception e) {}
+                            writer.addToQueue(converter.toEvent(dcpRequest));
                         }
                     }
                 });
