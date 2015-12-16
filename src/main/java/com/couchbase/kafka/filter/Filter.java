@@ -38,6 +38,4 @@ public interface Filter {
      * @return true if event should be sent to Kafka.
      */
     boolean pass(DCPEvent dcpEvent);
-
-    void setContext(final SourceTaskContext context);
 }

@@ -83,7 +83,6 @@ public class CouchbaseConnector implements Runnable {
     private CouchbaseConnector(final List<String> couchbaseNodes, final String couchbaseBucket, final String couchbasePassword, final CouchbaseEnvironment environment) {
         try {
             filter = (Filter) Class.forName(environment.kafkaFilterClass()).newInstance();
-            filter.setContext(environment.getSourceTaskContext());
         } catch (ReflectiveOperationException e) {
             throw new IllegalArgumentException("Cannot initialize filter class:" +
                     environment.kafkaFilterClass(), e);

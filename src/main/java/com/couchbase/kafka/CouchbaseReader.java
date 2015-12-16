@@ -183,6 +183,4 @@ public class CouchbaseReader {
                     }
                 });
     }
-
-    private static Long count = new Long(0);
 }
