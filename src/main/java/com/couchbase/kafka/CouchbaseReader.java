@@ -178,9 +178,6 @@ public class CouchbaseReader {
                                     oldState.snapshotEndSequenceNumber());
                             state.put(newState);
                         } else {
-                            try {
-                                ((MutationMessage)converter.toEvent(dcpRequest).message()).content().release();
-                            } catch(Exception e) {}
                             writer.addToQueue(converter.toEvent(dcpRequest));
                         }
                     }
