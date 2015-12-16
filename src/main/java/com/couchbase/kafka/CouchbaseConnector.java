@@ -24,13 +24,17 @@ package com.couchbase.kafka;
 
 import com.couchbase.client.core.ClusterFacade;
 import com.couchbase.client.core.CouchbaseCore;
+import com.couchbase.client.core.dcp.BucketStreamAggregatorState;
+import com.couchbase.client.core.dcp.BucketStreamState;
 import com.couchbase.client.core.logging.CouchbaseLogger;
 import com.couchbase.client.core.logging.CouchbaseLoggerFactory;
+import com.couchbase.client.core.message.kv.MutationToken;
 import com.couchbase.client.deps.com.lmax.disruptor.ExceptionHandler;
 import com.couchbase.client.deps.com.lmax.disruptor.RingBuffer;
 import com.couchbase.client.deps.com.lmax.disruptor.dsl.Disruptor;
 import com.couchbase.client.deps.io.netty.util.concurrent.DefaultThreadFactory;
 import com.couchbase.kafka.filter.Filter;
+import com.couchbase.kafka.state.RunMode;
 import com.couchbase.kafka.state.StateSerializer;
 
 import java.util.List;
@@ -60,16 +64,9 @@ import java.util.concurrent.Executors;
  * @author Sergey Avseyev
  */
 public class CouchbaseConnector implements Runnable {
-    private static final CouchbaseLogger LOGGER = CouchbaseLoggerFactory.getInstance(CouchbaseConnector.class);
-
-    private static final DCPEventFactory DCP_EVENT_FACTORY = new DCPEventFactory();
-
     private final ClusterFacade core;
-    private final ExecutorService disruptorExecutor;
-    private final Disruptor<DCPEvent> disruptor;
-    private final RingBuffer<DCPEvent> dcpRingBuffer;
     private final CouchbaseReader couchbaseReader;
-    ConnectWriter writer;
+    private final ConnectWriter writer;
     private final Filter filter;
     private final StateSerializer stateSerializer;
     private final CouchbaseEnvironment environment;
@@ -86,6 +83,7 @@ public class CouchbaseConnector implements Runnable {
     private CouchbaseConnector(final List<String> couchbaseNodes, final String couchbaseBucket, final String couchbasePassword, final CouchbaseEnvironment environment) {
         try {
             filter = (Filter) Class.forName(environment.kafkaFilterClass()).newInstance();
+            filter.setContext(environment.getSourceTaskContext());
         } catch (ReflectiveOperationException e) {
             throw new IllegalArgumentException("Cannot initialize filter class:" +
                     environment.kafkaFilterClass(), e);
@@ -100,35 +98,52 @@ public class CouchbaseConnector implements Runnable {
         }
         this.environment = environment;
         core = new CouchbaseCore(environment);
-        disruptorExecutor = Executors.newFixedThreadPool(2, new DefaultThreadFactory("cb-kafka", true));
-        disruptor = new Disruptor<DCPEvent>(
-                DCP_EVENT_FACTORY,
-                16384,
-                disruptorExecutor
-        );
-        disruptor.handleExceptionsWith(new ExceptionHandler() {
-            @Override
-            public void handleEventException(final Throwable ex, final long sequence, final Object event) {
-                LOGGER.warn("Exception while Handling DCP Events {}", event, ex);
-            }
-
-            @Override
-            public void handleOnStartException(final Throwable ex) {
-                LOGGER.warn("Exception while Starting DCP RingBuffer", ex);
-            }
-
-            @Override
-            public void handleOnShutdownException(final Throwable ex) {
-                LOGGER.info("Exception while shutting down DCP RingBuffer", ex);
-            }
-        });
 
         writer = new ConnectWriter(filter, environment.batchSize());
-        disruptor.handleEventsWith(writer);
-        disruptor.start();
-        dcpRingBuffer = disruptor.getRingBuffer();
-        couchbaseReader = new CouchbaseReader(couchbaseNodes, couchbaseBucket, couchbasePassword, core, dcpRingBuffer, stateSerializer, environment.getSourceTaskContext());
+        couchbaseReader = new CouchbaseReader(couchbaseNodes, couchbaseBucket, couchbasePassword, core, stateSerializer, writer);
         couchbaseReader.connect();
+    }
+
+    /**
+     * Returns current sequence numbers for each partition.
+     *
+     * @return the list of the objects representing sequence numbers
+     */
+    public MutationToken[] currentSequenceNumbers() {
+        return couchbaseReader.currentSequenceNumbers();
+    }
+
+    /**
+     * Builds {@link BucketStreamAggregatorState} using current state of the bucket.
+     *
+     * @param direction defines the range which should be defined. The current state
+     *                  of the streams is pivot, Direction.TO_CURRENT will represent
+     *                  all changes happened before current state, and Direction.FROM_CURRENT
+     *                  represents changes that will happen in the future.
+     * @return BucketStreamAggregatorState
+     */
+    public BucketStreamAggregatorState buildState(final Direction direction) {
+        MutationToken[] tokens = currentSequenceNumbers();
+        BucketStreamAggregatorState state = new BucketStreamAggregatorState();
+        for (MutationToken token : tokens) {
+            long start = 0, end = 0;
+            switch (direction) {
+                case TO_CURRENT:
+                    start = 0;
+                    end = token.sequenceNumber();
+                    break;
+                case FROM_CURRENT:
+                    start = token.sequenceNumber();
+                    end = 0xffffffff;
+                    break;
+                case EVERYTHING:
+                    start = 0;
+                    end = 0xffffffff;
+                    break;
+            }
+            state.put(new BucketStreamState((short) token.vbucketID(), token.vbucketUUID(), start, end, start, end));
+        }
+        return state;
     }
 
     /**
@@ -159,6 +174,14 @@ public class CouchbaseConnector implements Runnable {
      */
     @Override
     public void run() {
-        couchbaseReader.run();
+        run(RunMode.LOAD_AND_RESUME);
+    }
+
+    public void run(RunMode mode) {
+        run(buildState(Direction.EVERYTHING), mode);
+    }
+
+    public void run(final BucketStreamAggregatorState state, final RunMode mode) {
+        couchbaseReader.run(state, mode);
     }
 }

@@ -23,6 +23,7 @@
 package com.couchbase.kafka.filter;
 
 import com.couchbase.kafka.DCPEvent;
+import org.apache.kafka.connect.source.SourceTaskContext;
 
 /**
  * General interface to select Couchbase events, which has to be sent to Kafka.
@@ -37,4 +38,6 @@ public interface Filter {
      * @return true if event should be sent to Kafka.
      */
     boolean pass(DCPEvent dcpEvent);
+
+    void setContext(final SourceTaskContext context);
 }

@@ -28,26 +28,25 @@ import com.couchbase.client.core.dcp.BucketStreamAggregator;
 import com.couchbase.client.core.dcp.BucketStreamAggregatorState;
 import com.couchbase.client.core.dcp.BucketStreamState;
 import com.couchbase.client.core.dcp.BucketStreamStateUpdatedEvent;
-import com.couchbase.client.core.message.CouchbaseMessage;
 import com.couchbase.client.core.message.cluster.GetClusterConfigRequest;
 import com.couchbase.client.core.message.cluster.GetClusterConfigResponse;
 import com.couchbase.client.core.message.cluster.OpenBucketRequest;
 import com.couchbase.client.core.message.cluster.SeedNodesRequest;
 import com.couchbase.client.core.message.dcp.DCPRequest;
+import com.couchbase.client.core.message.dcp.MutationMessage;
 import com.couchbase.client.core.message.dcp.SnapshotMarkerMessage;
-import com.couchbase.client.deps.com.lmax.disruptor.EventTranslatorOneArg;
-import com.couchbase.client.deps.com.lmax.disruptor.RingBuffer;
+import com.couchbase.client.core.message.kv.MutationToken;
+import com.couchbase.kafka.converter.Converter;
+import com.couchbase.kafka.converter.ConverterImpl;
+import com.couchbase.kafka.state.RunMode;
 import com.couchbase.kafka.state.StateSerializer;
-import org.apache.kafka.connect.source.SourceTaskContext;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import rx.functions.Action1;
 import rx.functions.Func1;
 
-import java.util.Collections;
-import java.util.HashMap;
+import java.util.ArrayList;
 import java.util.List;
-import java.util.Map;
 import java.util.concurrent.TimeUnit;
 
 /**
@@ -57,25 +56,18 @@ import java.util.concurrent.TimeUnit;
  */
 public class CouchbaseReader {
     private final static Logger log = LoggerFactory.getLogger(CouchbaseReader.class);
-    private final static Map<Short, Long> toCommit = new HashMap<>(0);
 
-    private static final EventTranslatorOneArg<DCPEvent, CouchbaseMessage> TRANSLATOR =
-            new EventTranslatorOneArg<DCPEvent, CouchbaseMessage>() {
-                @Override
-                public void translateTo(final DCPEvent event, final long sequence, final CouchbaseMessage message) {
-                    event.setMessage(message);
-                }
-            };
     private final ClusterFacade core;
-    private final RingBuffer<DCPEvent> dcpRingBuffer;
     private final List<String> nodes;
     private final String bucket;
     private final String streamName;
     private final String password;
-    private final BucketStreamAggregator streamAggregator;
+    private final BucketStreamAggregator aggregator;
     private final StateSerializer stateSerializer;
     private int numberOfPartitions;
-    private SourceTaskContext context;
+    private final Converter converter;
+    private final ConnectWriter writer;
+
 
     /**
      * Creates a new {@link CouchbaseReader}.
@@ -84,20 +76,20 @@ public class CouchbaseReader {
      * @param couchbaseBucket   bucket name to override {@link CouchbaseEnvironment#couchbaseBucket()}
      * @param couchbasePassword password to override {@link CouchbaseEnvironment#couchbasePassword()}
      * @param core              the core reference.
-     * @param dcpRingBuffer     the buffer where to publish new events.
+     *                          //     * @param dcpRingBuffer     the buffer where to publish new events.
      * @param stateSerializer   the object to serialize the state of DCP streams.
      */
     public CouchbaseReader(final List<String> couchbaseNodes, final String couchbaseBucket, final String couchbasePassword,
-                           final ClusterFacade core, final RingBuffer<DCPEvent> dcpRingBuffer, final StateSerializer stateSerializer, final SourceTaskContext context) {
+                           final ClusterFacade core, final StateSerializer stateSerializer, final ConnectWriter writer) {
         this.core = core;
-        this.dcpRingBuffer = dcpRingBuffer;
         this.nodes = couchbaseNodes;
         this.bucket = couchbaseBucket;
         this.password = couchbasePassword;
-        this.streamAggregator = new BucketStreamAggregator(core, bucket);
+        this.aggregator = new BucketStreamAggregator(core, bucket);
         this.stateSerializer = stateSerializer;
-        this.context = context;
         this.streamName = "CouchbaseKafka(" + this.hashCode() + ")";
+        this.converter = new ConverterImpl();
+        this.writer = writer;
     }
 
     /**
@@ -135,15 +127,27 @@ public class CouchbaseReader {
                 .single();
     }
 
+    public MutationToken[] currentSequenceNumbers() {
+        return aggregator.getCurrentState().map(new Func1<BucketStreamAggregatorState, MutationToken[]>() {
+            @Override
+            public MutationToken[] call(BucketStreamAggregatorState aggregatorState) {
+                List<MutationToken> tokens = new ArrayList<MutationToken>(aggregatorState.size());
+                for (BucketStreamState streamState : aggregatorState) {
+                    tokens.add(new MutationToken(streamState.partition(),
+                            streamState.vbucketUUID(), streamState.startSequenceNumber()));
+                }
+                return tokens.toArray(new MutationToken[tokens.size()]);
+            }
+        }).toBlocking().first();
+    }
+
     /**
      * Executes worker reading loop, which relays events from Couchbase to Kafka.
      */
-    public void run() {
-        final BucketStreamAggregatorState state = new BucketStreamAggregatorState(streamName);
-        for (int i = 0; i < numberOfPartitions; i++) {
-            state.put(new BucketStreamState((short) i, 1, 0, 0xffffffff, 0, 0xffffffff));
+    public void run(final BucketStreamAggregatorState state, final RunMode mode) {
+        if(mode == RunMode.LOAD_AND_RESUME) {
+            stateSerializer.load(state);
         }
-        stateSerializer.load(state);
 
         state.updates().subscribe(
                 new Action1<BucketStreamStateUpdatedEvent>() {
@@ -156,11 +160,10 @@ public class CouchbaseReader {
                         }
                     }
                 });
-        streamAggregator.feed(state)
-//                .toBlocking()
-                .forEach(new Action1<DCPRequest>() {
-                    private long sequence = 0;
 
+        aggregator.feed(state)
+                .toBlocking()
+                .forEach(new Action1<DCPRequest>() {
                     @Override
                     public void call(final DCPRequest dcpRequest) {
                         if (dcpRequest instanceof SnapshotMarkerMessage) {
@@ -175,29 +178,16 @@ public class CouchbaseReader {
                                     oldState.snapshotEndSequenceNumber());
                             state.put(newState);
                         } else {
-                            // partition of the message
-                            Short partition = dcpRequest.partition();
-                            // count of messages already been read from the partition
-                            Long count = CouchbaseReader.toCommit.get(partition);
-                            // if the count is null, it's the first message to commit
-                            count = count == null ? 1 : count;
-                            // counter of the messages for this partition already written to kafka
-                            Long position = new Long(0);
-                            Map<String, Object> offsets = context.offsetStorageReader().offset(Collections.singletonMap("couchbase", partition));
-                            // if the map is null, no offsets have been committed for the current partition
-                            position = offsets == null ? position : (Long) offsets.get(partition.toString());
-
-                            // if we have read more messages than the ones already sent to kafka, it's a newer message
-                            if (count > position) {
-                                log.trace("position {}", position);
-                                log.trace("count {}", count);
-                                log.trace("partition {}", partition);
-                                dcpRingBuffer.tryPublishEvent(TRANSLATOR, dcpRequest);
-                            }
-                            // update the counter of consumed messages from couchbase
-                            CouchbaseReader.toCommit.put(partition, ++count);
+                            count++;
+                            log.warn("count {}", count);
+//                            try {
+//                                ((MutationMessage)converter.toEvent(dcpRequest).message()).content().release();
+//                            } catch(Exception e) {}
+//                            writer.addToQueue(converter.toEvent(dcpRequest));
                         }
                     }
                 });
     }
+
+    private static Long count = new Long(0);
 }

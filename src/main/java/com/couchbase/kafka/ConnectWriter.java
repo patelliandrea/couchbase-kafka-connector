@@ -1,7 +1,6 @@
 package com.couchbase.kafka;
 
 import com.couchbase.client.core.message.dcp.MutationMessage;
-import com.couchbase.client.deps.com.lmax.disruptor.EventHandler;
 import com.couchbase.client.deps.io.netty.util.CharsetUtil;
 import com.couchbase.kafka.filter.Filter;
 import javafx.util.Pair;
@@ -17,7 +16,7 @@ import java.util.concurrent.ConcurrentLinkedQueue;
  *
  * @author Andrea Patelli
  */
-public class ConnectWriter implements EventHandler<DCPEvent> {
+public class ConnectWriter {
     private final static Logger log = LoggerFactory.getLogger(ConnectWriter.class);
     private final Filter filter;
     private static Integer batchSize;
@@ -36,22 +35,16 @@ public class ConnectWriter implements EventHandler<DCPEvent> {
         this.batchSize = batchSize;
     }
 
-    /**
-     * Handles {@link DCPEvent}s that come into the response RingBuffer.
-     */
-    @Override
-    public void onEvent(final DCPEvent event, final long sequence, final boolean endOfBatch) throws Exception {
+    public synchronized void addToQueue(final DCPEvent event) {
         // if the event passes the filter, the message is added to a queue
         if (filter.pass(event)) {
-            if (event.message() instanceof MutationMessage) {
-                synchronized (sync) {
-                    MutationMessage mutation = (MutationMessage) event.message();
-                    String message = mutation.content().toString(CharsetUtil.UTF_8);
-                    queue.add(new Pair<>(message, ((MutationMessage) event.message()).partition()));
-                    mutation.content().release();
-//                    ConnectWriter.class.notifyAll();
-                }
-            }
+                MutationMessage mutation = (MutationMessage) event.message();
+                String message = new String(mutation.content().toString(CharsetUtil.UTF_8));
+                queue.add(new Pair<>(message, ((MutationMessage) event.message()).partition()));
+                mutation.content().release();
+        } else if(event.message() instanceof MutationMessage) {
+            MutationMessage mutation = (MutationMessage) event.message();
+            mutation.content().release();
         }
     }
 
@@ -60,13 +53,11 @@ public class ConnectWriter implements EventHandler<DCPEvent> {
      *
      * @return a copy of the queue
      */
-    public static Queue<Pair<String, Short>> getQueue() {
+    public synchronized static Queue<Pair<String, Short>> getQueue() {
         Queue<Pair<String, Short>> tmpQueue;
-        synchronized (sync) {
             tmpQueue = new LinkedList<>();
             for (int i = 0; i < batchSize && !queue.isEmpty(); i++)
                 tmpQueue.add(queue.poll());
-        }
         return new LinkedList<>(tmpQueue);
     }
 }

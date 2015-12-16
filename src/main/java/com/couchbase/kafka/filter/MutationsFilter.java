@@ -25,6 +25,11 @@ package com.couchbase.kafka.filter;
 import com.couchbase.client.core.message.dcp.MutationMessage;
 import com.couchbase.client.core.message.dcp.RemoveMessage;
 import com.couchbase.kafka.DCPEvent;
+import org.apache.kafka.connect.source.SourceTaskContext;
+
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.Map;
 
 /**
  * The {@link MutationsFilter} allows only mutations to be sent to Kafka.
@@ -32,6 +37,9 @@ import com.couchbase.kafka.DCPEvent;
  * @author Sergey Avseyev
  */
 public class MutationsFilter implements Filter {
+    private final static Map<Short, Long> toCommit = new HashMap<>(0);
+    private SourceTaskContext context;
+    private static Boolean ready = Boolean.FALSE;
 
     /**
      * Returns true if event is mutation.
@@ -40,7 +48,32 @@ public class MutationsFilter implements Filter {
      * @return true if event is mutation.
      */
     public boolean pass(final DCPEvent dcpEvent) {
-        return dcpEvent.message() instanceof MutationMessage
-                || dcpEvent.message() instanceof RemoveMessage;
+        if(dcpEvent.message() instanceof MutationMessage) {
+            // partition of the message
+            Short partition = ((MutationMessage)dcpEvent.message()).partition();
+            // count of messages already been read from the partition
+            Long count = MutationsFilter.toCommit.get(partition);
+            // if the count is null, it's the first message to commit
+            count = count == null ? 1 : count;
+            // counter of the messages for this partition already written to kafka
+            Long position = new Long(0);
+            Map<String, Object> offsets = context.offsetStorageReader().offset(Collections.singletonMap("couchbase", partition));
+            // if the map is null, no offsets have been committed for the current partition
+            position = offsets == null ? position : (Long) offsets.get(partition.toString());
+
+            // if we have read more messages than the ones already sent to kafka, it's a newer message
+            ready = count > partition;
+            // update the counter of consumed messages from couchbase
+            MutationsFilter.toCommit.put(partition, ++count);
+        }
+
+
+        return ready && dcpEvent.message() instanceof MutationMessage;
+    }
+
+    public void setContext(final SourceTaskContext context) {
+        this.context = context;
     }
 }
+
+
