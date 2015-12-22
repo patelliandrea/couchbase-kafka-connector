@@ -37,12 +37,11 @@ public class ConnectWriter {
 
     public void addToQueue(final DCPEvent event) {
         synchronized (sync) {
-            while (queue.size() >= 25000) {
+            // while (queue.size() >= 1000) {
                 try {
-                    sync.wait();
-                } catch (Exception e) {
-                }
-            }
+                    sync.wait(10);
+                } catch (Exception e) { }
+            // }
             // if the event passes the filter, the message is added to a queue
             if (filter.pass(event)) {
                 MutationMessage mutation = (MutationMessage) event.message();

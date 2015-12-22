@@ -170,7 +170,7 @@ public class CouchbaseSourceTask extends SourceTask {
                 records.add(new SourceRecord(Collections.singletonMap(couchbaseBucket, partition), Collections.singletonMap(partition.toString(), count), topic, struct.schema(), struct));
                 committed.put(partition, count);
             }
-            ConnectWriter.sync.notifyAll();
+            // ConnectWriter.sync.notify();
             return records;
         }
     }
