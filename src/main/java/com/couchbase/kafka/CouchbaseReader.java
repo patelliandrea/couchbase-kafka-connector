@@ -33,7 +33,6 @@ import com.couchbase.client.core.message.cluster.GetClusterConfigResponse;
 import com.couchbase.client.core.message.cluster.OpenBucketRequest;
 import com.couchbase.client.core.message.cluster.SeedNodesRequest;
 import com.couchbase.client.core.message.dcp.DCPRequest;
-import com.couchbase.client.core.message.dcp.MutationMessage;
 import com.couchbase.client.core.message.dcp.SnapshotMarkerMessage;
 import com.couchbase.client.core.message.kv.MutationToken;
 import com.couchbase.kafka.converter.Converter;
@@ -145,7 +144,7 @@ public class CouchbaseReader {
      * Executes worker reading loop, which relays events from Couchbase to Kafka.
      */
     public void run(final BucketStreamAggregatorState state, final RunMode mode) {
-        if(mode == RunMode.LOAD_AND_RESUME) {
+        if (mode == RunMode.LOAD_AND_RESUME) {
             stateSerializer.load(state);
         }
 
@@ -160,9 +159,19 @@ public class CouchbaseReader {
                         }
                     }
                 });
+//        Timer timer = new Timer();
+//        timer.schedule(new java.util.TimerTask() {
+//            @Override
+//            public void run() {
+//                log.warn("count {}", count);
+//                log.warn("queue {}", ConnectWriter.queueSize());
+//                count = 0;
+//            }
+//        }, 0, 1000);
 
-        aggregator.feed(state)
-                // .toBlocking()
+        aggregator
+                .feed(state)
+                .toBlocking()
                 .forEach(new Action1<DCPRequest>() {
                     @Override
                     public void call(final DCPRequest dcpRequest) {
@@ -179,8 +188,11 @@ public class CouchbaseReader {
                             state.put(newState);
                         } else {
                             writer.addToQueue(converter.toEvent(dcpRequest));
+//                            count++;
                         }
                     }
                 });
     }
+
+//    private static long count = 0;
 }

@@ -23,13 +23,7 @@
 package com.couchbase.kafka.filter;
 
 import com.couchbase.client.core.message.dcp.MutationMessage;
-import com.couchbase.client.core.message.dcp.RemoveMessage;
 import com.couchbase.kafka.DCPEvent;
-import org.apache.kafka.connect.source.SourceTaskContext;
-
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.Map;
 
 /**
  * The {@link MutationsFilter} allows only mutations to be sent to Kafka.

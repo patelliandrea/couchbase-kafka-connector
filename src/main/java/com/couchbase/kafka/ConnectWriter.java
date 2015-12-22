@@ -36,14 +36,20 @@ public class ConnectWriter {
     }
 
     public void addToQueue(final DCPEvent event) {
-        synchronized(sync) {
+        synchronized (sync) {
+            while (queue.size() >= 25000) {
+                try {
+                    sync.wait();
+                } catch (Exception e) {
+                }
+            }
             // if the event passes the filter, the message is added to a queue
             if (filter.pass(event)) {
                 MutationMessage mutation = (MutationMessage) event.message();
                 String message = new String(mutation.content().toString(CharsetUtil.UTF_8));
                 queue.add(new Pair<>(message, ((MutationMessage) event.message()).partition()));
                 mutation.content().release();
-            } 
+            }
             // else if (event.message() instanceof MutationMessage) {
             //     MutationMessage mutation = (MutationMessage) event.message();
             //     mutation.content().release();
@@ -62,7 +68,13 @@ public class ConnectWriter {
             tmpQueue = new LinkedList<>();
             for (int i = 0; i < batchSize && !queue.isEmpty(); i++)
                 tmpQueue.add(queue.poll());
+
+//            sync.notifyAll();
             return new LinkedList<>(tmpQueue);
         }
+    }
+
+    public static int queueSize() {
+        return queue.size();
     }
 }

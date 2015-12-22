@@ -1,6 +1,5 @@
 package com.couchbase.kafka.converter;
 
-import com.couchbase.client.core.message.CouchbaseMessage;
 import com.couchbase.client.core.message.dcp.DCPRequest;
 import com.couchbase.kafka.DCPEvent;
 

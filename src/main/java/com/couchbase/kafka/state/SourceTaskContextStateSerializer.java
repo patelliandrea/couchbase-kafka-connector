@@ -17,9 +17,11 @@ import java.util.Map;
 public class SourceTaskContextStateSerializer implements StateSerializer {
     private final static Logger log = LoggerFactory.getLogger(SourceTaskContextStateSerializer.class);
     private SourceTaskContext context;
+    private String couchbaseBucket;
 
     public SourceTaskContextStateSerializer(final CouchbaseEnvironment environment) {
         this.context = environment.getSourceTaskContext();
+        this.couchbaseBucket = environment.couchbaseBucket();
     }
 
     @Override
@@ -53,11 +55,12 @@ public class SourceTaskContextStateSerializer implements StateSerializer {
     @Override
     public BucketStreamState load(BucketStreamAggregatorState aggregatorState, Short partition) {
         BucketStreamState partitionState = aggregatorState.get(partition);
-        Map<String, Object> offsetMap = context.offsetStorageReader().offset(Collections.singletonMap("couchbase", partition));
-        if(offsetMap != null) {
-            Long currentOffset = (Long) offsetMap.get(partition.toString());
-            if(currentOffset != null)
-                return new BucketStreamState(partitionState.partition(), partitionState.vbucketUUID(), currentOffset, 0xffffffff, currentOffset, 0xffffffff);  
+//        Map<String, Object> offsetMap = context.offsetStorageReader().offset(Collections.singletonMap("couchbase", partition));
+        Map<String, Object> offsetsForPartition = CouchbaseSourceTask.offsets.get(Collections.singletonMap(couchbaseBucket, partition));
+        if (offsetsForPartition != null) {
+            Long currentOffset = (Long) offsetsForPartition.get(partition.toString());
+            if (currentOffset != null)
+                return new BucketStreamState(partitionState.partition(), partitionState.vbucketUUID(), currentOffset, 0xffffffff, currentOffset, 0xffffffff);
         }
         return null;
     }

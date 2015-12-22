@@ -26,20 +26,12 @@ import com.couchbase.client.core.ClusterFacade;
 import com.couchbase.client.core.CouchbaseCore;
 import com.couchbase.client.core.dcp.BucketStreamAggregatorState;
 import com.couchbase.client.core.dcp.BucketStreamState;
-import com.couchbase.client.core.logging.CouchbaseLogger;
-import com.couchbase.client.core.logging.CouchbaseLoggerFactory;
 import com.couchbase.client.core.message.kv.MutationToken;
-import com.couchbase.client.deps.com.lmax.disruptor.ExceptionHandler;
-import com.couchbase.client.deps.com.lmax.disruptor.RingBuffer;
-import com.couchbase.client.deps.com.lmax.disruptor.dsl.Disruptor;
-import com.couchbase.client.deps.io.netty.util.concurrent.DefaultThreadFactory;
 import com.couchbase.kafka.filter.Filter;
 import com.couchbase.kafka.state.RunMode;
 import com.couchbase.kafka.state.StateSerializer;
 
 import java.util.List;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
 
 /**
  * {@link CouchbaseConnector} is an entry point of the library. It sets up connections with both Couchbase and
