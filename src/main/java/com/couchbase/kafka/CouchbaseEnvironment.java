@@ -62,10 +62,5 @@ public interface CouchbaseEnvironment extends CoreEnvironment {
      */
     SourceTaskContext getSourceTaskContext();
 
-    /**
-     * How many records to publish to Kafka at at time
-     *
-     * @return the batch size to use
-     */
-    Integer batchSize();
+    Integer maxDrainRate();
 }

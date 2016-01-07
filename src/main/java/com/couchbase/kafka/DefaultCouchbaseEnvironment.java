@@ -42,14 +42,13 @@ public class DefaultCouchbaseEnvironment extends DefaultCoreEnvironment implemen
     private static final String COUCHBASE_PASSWORD = "";
     private static final String COUCHBASE_NODE = "127.0.0.1";
     private static final String KAFKA_FILTER_CLASS = "com.couchbase.kafka.filter.MutationsFilter";
-    private static final Integer BATCH_SIZE = 200;
 
     private String couchbaseStateSerializerClass;
     private String couchbasePassword;
     private String couchbaseBucket;
     private List<String> couchbaseNodes;
     private String kafkaFilterClass;
-    private Integer batchSize;
+    private Integer maxDrainRate;
 
     private SourceTaskContext context;
 
@@ -90,7 +89,7 @@ public class DefaultCouchbaseEnvironment extends DefaultCoreEnvironment implemen
         couchbaseBucket = stringPropertyOr("couchbase.bucket", builder.couchbaseBucket);
         couchbasePassword = stringPropertyOr("couchbase.password", builder.couchbasePassword);
         kafkaFilterClass = stringPropertyOr("kafka.filter.class", builder.kafkaFilterClass);
-        batchSize = intPropertyOr("task.batch.size", builder.batchSize);
+        maxDrainRate = intPropertyOr("dcp.maximum.drainrate", builder.maxDrainRate);
         context = builder.context;
     }
 
@@ -120,14 +119,12 @@ public class DefaultCouchbaseEnvironment extends DefaultCoreEnvironment implemen
     }
 
     @Override
-    public Integer batchSize() {
-        return batchSize;
-    }
-
-    @Override
     public SourceTaskContext getSourceTaskContext() {
         return context;
     }
+
+    @Override
+    public Integer maxDrainRate() { return maxDrainRate; }
 
     private List<String> stringListPropertyOr(String path, List<String> def) {
         String found = stringPropertyOr(path, null);
@@ -144,8 +141,8 @@ public class DefaultCouchbaseEnvironment extends DefaultCoreEnvironment implemen
         public String couchbaseBucket = COUCHBASE_BUCKET;
         public String couchbasePassword = COUCHBASE_PASSWORD;
         public String kafkaFilterClass = KAFKA_FILTER_CLASS;
-        public Integer batchSize = BATCH_SIZE;
         public SourceTaskContext context;
+        public Integer maxDrainRate;
 
         public Builder() {
             couchbaseNodes = Collections.singletonList(COUCHBASE_NODE);
@@ -186,8 +183,8 @@ public class DefaultCouchbaseEnvironment extends DefaultCoreEnvironment implemen
             return this;
         }
 
-        public Builder batchSize(final Integer batchSize) {
-            this.batchSize = batchSize;
+        public Builder maxDrainRate(final Integer maxDrainRate) {
+            this.maxDrainRate = maxDrainRate;
             return this;
         }
 

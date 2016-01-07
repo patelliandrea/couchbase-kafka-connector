@@ -21,15 +21,13 @@ public class CouchbaseSourceConnector extends SourceConnector {
     public static final String SCHEMA_NAME = "schema.name";
     public static final String COUCHBASE_NODES = "couchbase.nodes";
     public static final String COUCHBASE_BUCKET = "couchbase.bucket";
-    public static final String TASK_BATCH_SIZE = "task.max.batch.size";
-    public static final String TASK_POLL_FREQUENCY = "task.poll.frequency";
+    public static final String MAX_DRAIN_RATE = "dcp.maximum.drainrate";
 
     private String topic;
     private String schemaName;
     private String couchbaseNodes;
     private String couchbaseBucket;
-    private String taskBatchSize;
-    private String taskPollFrequency;
+    private String maxDrainRate;
 
     /**
      * Get the version of this connector.
@@ -53,8 +51,7 @@ public class CouchbaseSourceConnector extends SourceConnector {
         schemaName = props.get(SCHEMA_NAME);
         couchbaseNodes = props.get(COUCHBASE_NODES);
         couchbaseBucket = props.get(COUCHBASE_BUCKET);
-        taskBatchSize = props.get(TASK_BATCH_SIZE);
-        taskPollFrequency = props.get(TASK_POLL_FREQUENCY);
+        maxDrainRate = props.get(MAX_DRAIN_RATE);
 
         if (topic == null || topic.isEmpty())
             throw new ConnectException("Configuration must include 'topic' setting");
@@ -66,18 +63,13 @@ public class CouchbaseSourceConnector extends SourceConnector {
             throw new ConnectException("Configuration must include 'couchbase.nodes' setting");
         if (couchbaseBucket == null || couchbaseBucket.isEmpty())
             throw new ConnectException("Configuration must include 'couchbase.bucket' setting");
-        if (taskPollFrequency != null) {
+        if (maxDrainRate == null || maxDrainRate.isEmpty()) {
+            throw new ConnectException("Configuration must include 'dcp.maximum.drainrate' setting");
+        } else if (maxDrainRate != null) {
             try {
-                Integer.parseInt(taskPollFrequency);
+                Integer.parseInt(maxDrainRate);
             } catch (Exception e) {
-                throw new ConnectException("'task.poll.frequency' setting should be an integer");
-            }
-        }
-        if (taskBatchSize != null) {
-            try {
-                Integer.parseInt(taskBatchSize);
-            } catch (Exception e) {
-                throw new ConnectException("'task.batch.size' setting should be an integer");
+                throw new ConnectException("'dcp.maximum.drainrate' setting should be an integer");
             }
         }
     }
@@ -105,8 +97,7 @@ public class CouchbaseSourceConnector extends SourceConnector {
         config.put(SCHEMA_NAME, schemaName);
         config.put(COUCHBASE_NODES, couchbaseNodes);
         config.put(COUCHBASE_BUCKET, couchbaseBucket);
-        config.put(TASK_BATCH_SIZE, taskBatchSize);
-        config.put(TASK_POLL_FREQUENCY, taskPollFrequency);
+        config.put(MAX_DRAIN_RATE, maxDrainRate);
         configs.add(config);
         return configs;
     }

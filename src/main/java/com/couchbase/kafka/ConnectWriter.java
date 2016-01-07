@@ -19,9 +19,8 @@ import java.util.concurrent.ConcurrentLinkedQueue;
 public class ConnectWriter {
     private final static Logger log = LoggerFactory.getLogger(ConnectWriter.class);
     private final Filter filter;
-    private static Integer batchSize;
 
-    private final static ConcurrentLinkedQueue<Pair<String, Short>> queue = new ConcurrentLinkedQueue<>();
+    private final static ConcurrentLinkedQueue<MutationMessage> queue = new ConcurrentLinkedQueue<>();
 
     public final static Object sync = new Object();
 
@@ -30,29 +29,17 @@ public class ConnectWriter {
      *
      * @param filter the filter to select events to publish.
      */
-    public ConnectWriter(final Filter filter, Integer batchSize) {
+    public ConnectWriter(final Filter filter) {
         this.filter = filter;
-        this.batchSize = batchSize;
     }
 
     public void addToQueue(final DCPEvent event) {
         synchronized (sync) {
-            // while (queue.size() >= 1000) {
-                try {
-                    sync.wait(10);
-                } catch (Exception e) { }
-            // }
             // if the event passes the filter, the message is added to a queue
             if (filter.pass(event)) {
                 MutationMessage mutation = (MutationMessage) event.message();
-                String message = new String(mutation.content().toString(CharsetUtil.UTF_8));
-                queue.add(new Pair<>(message, ((MutationMessage) event.message()).partition()));
-                mutation.content().release();
+                queue.add(mutation);
             }
-            // else if (event.message() instanceof MutationMessage) {
-            //     MutationMessage mutation = (MutationMessage) event.message();
-            //     mutation.content().release();
-            // }
         }
     }
 
@@ -61,14 +48,13 @@ public class ConnectWriter {
      *
      * @return a copy of the queue
      */
-    public static Queue<Pair<String, Short>> getQueue() {
+    public static Queue<MutationMessage> getQueue() {
         synchronized (sync) {
-            Queue<Pair<String, Short>> tmpQueue;
+            Queue<MutationMessage> tmpQueue;
             tmpQueue = new LinkedList<>();
-            for (int i = 0; i < batchSize && !queue.isEmpty(); i++)
+            while(!queue.isEmpty()) {
                 tmpQueue.add(queue.poll());
-
-//            sync.notifyAll();
+            }
             return new LinkedList<>(tmpQueue);
         }
     }

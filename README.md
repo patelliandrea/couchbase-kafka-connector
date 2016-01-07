@@ -30,8 +30,6 @@ couchbase.nodes=localhost
 couchbase.bucket=beer-sample
 # max number of tasks to run
 tasks.max=1
-# maximum number of records to write every poll() call
-task.batch.size=200
-# frequency on which call the poll() function
-task.poll.frequency=1000
+# maximum number of documents to fetch from couchbase every second
+dcp.maximum.drainrate=600
 ```

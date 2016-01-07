@@ -1,5 +1,7 @@
 package org.apache.kafka.connect.couchbase;
 
+import com.couchbase.client.core.message.dcp.MutationMessage;
+import com.couchbase.client.deps.io.netty.util.CharsetUtil;
 import com.couchbase.kafka.ConnectWriter;
 import com.couchbase.kafka.CouchbaseConnector;
 import com.couchbase.kafka.DefaultCouchbaseEnvironment;
@@ -28,14 +30,15 @@ public class CouchbaseSourceTask extends SourceTask {
     private String schemaName;
     private String couchbaseNodes;
     private String couchbaseBucket;
-    private Integer taskBatchSize;
-    private Integer taskPollFrequency;
+    private Integer maxDrainRate;
 
     public static Map<Map<String, Short>, Map<String, Object>> offsets;
 
     private static CouchbaseConnector connector;
 
     private final static Map<Short, Long> committed = new HashMap<>(0);
+
+    private final Queue<MutationMessage> toRelease = new LinkedList<>();
 
     @Override
     public String version() {
@@ -61,16 +64,9 @@ public class CouchbaseSourceTask extends SourceTask {
         couchbaseBucket = props.get(CouchbaseSourceConnector.COUCHBASE_BUCKET);
         if (couchbaseBucket == null)
             throw new ConnectException("CouchbaseSourceTask config missing couchbaseBucket setting");
-        try {
-            taskBatchSize = Integer.parseInt(props.get(CouchbaseSourceConnector.TASK_BATCH_SIZE));
-        } catch (Exception e) {
-            taskBatchSize = 200;
-        }
-        try {
-            taskPollFrequency = Integer.parseInt(props.get(CouchbaseSourceConnector.TASK_POLL_FREQUENCY));
-        } catch (Exception e) {
-            taskPollFrequency = 1000;
-        }
+        maxDrainRate = Integer.parseInt(props.get(CouchbaseSourceConnector.MAX_DRAIN_RATE));
+        if(maxDrainRate == null)
+            throw new ConnectException("CoucbaseSourceTask config missing maxDrainRate setting");
 
         loadOffsets(couchbaseBucket);
 
@@ -85,37 +81,17 @@ public class CouchbaseSourceTask extends SourceTask {
 
         DefaultCouchbaseEnvironment.Builder builder =
                 (DefaultCouchbaseEnvironment.Builder) DefaultCouchbaseEnvironment.builder()
+                        .maxDrainRate(maxDrainRate)
                         .setSourceTaskContext(context)
                         .kafkaFilterClass("com.couchbase.kafka.filter.MutationsFilter")
                         .couchbaseNodes(couchbaseNodes)
                         .couchbaseBucket(couchbaseBucket)
                         .couchbaseStateSerializerClass("com.couchbase.kafka.state.SourceTaskContextStateSerializer")
-                        .batchSize(taskBatchSize)
                         .dcpEnabled(true)
-                        .autoreleaseAfter(TimeUnit.SECONDS.toMillis(10L));
+                        .autoreleaseAfter(TimeUnit.SECONDS.toMillis(10L))
+                        .dcpConnectionBufferSize(0);
         //;
         connector = CouchbaseConnector.create(builder.build());
-
-
-        //  BucketStreamAggregatorState state = new BucketStreamAggregatorState();
-        //  BucketStreamAggregatorState currentState = connector.buildState(Direction.FROM_CURRENT);
-        //  int total = 0;
-        //  for (BucketStreamState partitionState : currentState) {
-        //      Short partition = partitionState.partition();
-        //     Map<String, Object> offsetMap = context.offsetStorageReader().offset(Collections.singletonMap("couchbase", partition));
-        //     Long currentOffset = new Long(0);
-        //     if(offsetMap != null) {
-        //         currentOffset = (Long)offsetMap.get(partition.toString());
-        //         if(currentOffset == null)
-        //              currentOffset = new Long(0);
-        //     }
-        //     log.warn("init {} {}", partition, currentOffset);
-        //      state.put(new BucketStreamState(partition, partitionState.vbucketUUID(), currentOffset, 0xffffffff, currentOffset, 0xffffffff));
-        //      total += currentOffset;
-        // }
-        // log.warn("total {}", total);
-        // connector.run(state, RunMode.RESUME);
-//        connector.run(RunMode.LOAD_AND_RESUME);
         new Thread(connector).start();
     }
 
@@ -129,13 +105,14 @@ public class CouchbaseSourceTask extends SourceTask {
     public List<SourceRecord> poll() throws InterruptedException {
         List<SourceRecord> records = new ArrayList<>();
         // get the queue from couchbase
-        Queue<Pair<String, Short>> queue;
-        queue = new LinkedList<>(ConnectWriter.getQueue());
+        Queue<MutationMessage> queue;
+        queue = ConnectWriter.getQueue();
         synchronized (ConnectWriter.sync) {
+            ConnectWriter.sync.notifyAll();
             while (!queue.isEmpty()) {
-                Pair<String, Short> value = queue.poll();
-                String message = value.getKey();
-                Short partition = value.getValue();
+                MutationMessage value = queue.poll();
+                String message = value.content().toString(CharsetUtil.UTF_8);
+                Short partition = value.partition();
                 Struct struct = new Struct(schema);
                 struct.put("bucket", couchbaseBucket);
                 struct.put("document", "doc");
@@ -143,7 +120,6 @@ public class CouchbaseSourceTask extends SourceTask {
 
                 Long count = null;
                 // read the offset map for the current partition of couchbase
-//            Map<String, Object> offsetMap = context.offsetStorageReader().offset(Collections.singletonMap("couchbase", partition));
                 Map<String, Object> offsetsForPartition = offsets.get(Collections.singletonMap(couchbaseBucket, partition));
                 // if the map is not null, the offset are already been committed in the past
                 if (offsetsForPartition != null)
@@ -169,9 +145,9 @@ public class CouchbaseSourceTask extends SourceTask {
                 // set the count of committed messages for the current partition
                 records.add(new SourceRecord(Collections.singletonMap(couchbaseBucket, partition), Collections.singletonMap(partition.toString(), count), topic, struct.schema(), struct));
                 committed.put(partition, count);
+                value.content().release();
             }
-            // ConnectWriter.sync.notify();
-            return records;
+                return records;
         }
     }
 
@@ -184,14 +160,11 @@ public class CouchbaseSourceTask extends SourceTask {
     }
 
     private void loadOffsets(String source) {
-//        Map<Map<String, Short>, Map<String, Object>> offsets = new HashMap<>();
-
         List<Map<String, Short>> partitions = new ArrayList<>();
         for (Short i = 0; i < 1024; i++) {
             Map<String, Short> partition = Collections.singletonMap(source, i);
             partitions.add(partition);
         }
         offsets = context.offsetStorageReader().offsets(partitions);
-//        return offsets;
     }
 }

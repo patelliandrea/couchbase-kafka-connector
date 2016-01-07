@@ -90,8 +90,8 @@ public class CouchbaseConnector implements Runnable {
         this.environment = environment;
         core = new CouchbaseCore(environment);
 
-        writer = new ConnectWriter(filter, environment.batchSize());
-        couchbaseReader = new CouchbaseReader(couchbaseNodes, couchbaseBucket, couchbasePassword, core, stateSerializer, writer);
+        writer = new ConnectWriter(filter);
+        couchbaseReader = new CouchbaseReader(couchbaseNodes, couchbaseBucket, couchbasePassword, core, stateSerializer, writer, environment.maxDrainRate());
         couchbaseReader.connect();
     }
 

@@ -46,6 +46,7 @@ import rx.functions.Func1;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Timer;
 import java.util.concurrent.TimeUnit;
 
 /**
@@ -66,6 +67,7 @@ public class CouchbaseReader {
     private int numberOfPartitions;
     private final Converter converter;
     private final ConnectWriter writer;
+    private final Integer maxDrainRate;
 
 
     /**
@@ -79,7 +81,7 @@ public class CouchbaseReader {
      * @param stateSerializer   the object to serialize the state of DCP streams.
      */
     public CouchbaseReader(final List<String> couchbaseNodes, final String couchbaseBucket, final String couchbasePassword,
-                           final ClusterFacade core, final StateSerializer stateSerializer, final ConnectWriter writer) {
+                           final ClusterFacade core, final StateSerializer stateSerializer, final ConnectWriter writer, final Integer maxDrainRate) {
         this.core = core;
         this.nodes = couchbaseNodes;
         this.bucket = couchbaseBucket;
@@ -89,6 +91,7 @@ public class CouchbaseReader {
         this.streamName = "CouchbaseKafka(" + this.hashCode() + ")";
         this.converter = new ConverterImpl();
         this.writer = writer;
+        this.maxDrainRate = maxDrainRate;
     }
 
     /**
@@ -159,15 +162,14 @@ public class CouchbaseReader {
                         }
                     }
                 });
-//        Timer timer = new Timer();
-//        timer.schedule(new java.util.TimerTask() {
-//            @Override
-//            public void run() {
-//                log.warn("count {}", count);
-//                log.warn("queue {}", ConnectWriter.queueSize());
-//                count = 0;
-//            }
-//        }, 0, 1000);
+        Timer timer = new Timer();
+        timer.schedule(new java.util.TimerTask() {
+            @Override
+            public void run() {
+                log.warn("count {}", count);
+                count = 0;
+            }
+        }, 0, 1000);
 
         aggregator
                 .feed(state)
@@ -175,24 +177,31 @@ public class CouchbaseReader {
                 .forEach(new Action1<DCPRequest>() {
                     @Override
                     public void call(final DCPRequest dcpRequest) {
-                        if (dcpRequest instanceof SnapshotMarkerMessage) {
-                            SnapshotMarkerMessage snapshotMarker = (SnapshotMarkerMessage) dcpRequest;
-                            final BucketStreamState oldState = state.get(snapshotMarker.partition());
-                            BucketStreamState newState = new BucketStreamState(
-                                    snapshotMarker.partition(),
-                                    oldState.vbucketUUID(),
-                                    snapshotMarker.endSequenceNumber(),
-                                    oldState.endSequenceNumber(),
-                                    snapshotMarker.endSequenceNumber(),
-                                    oldState.snapshotEndSequenceNumber());
-                            state.put(newState);
-                        } else {
-                            writer.addToQueue(converter.toEvent(dcpRequest));
-//                            count++;
+                        synchronized(ConnectWriter.sync) {
+                            if (dcpRequest instanceof SnapshotMarkerMessage) {
+                                SnapshotMarkerMessage snapshotMarker = (SnapshotMarkerMessage) dcpRequest;
+                                final BucketStreamState oldState = state.get(snapshotMarker.partition());
+                                BucketStreamState newState = new BucketStreamState(
+                                        snapshotMarker.partition(),
+                                        oldState.vbucketUUID(),
+                                        snapshotMarker.endSequenceNumber(),
+                                        oldState.endSequenceNumber(),
+                                        snapshotMarker.endSequenceNumber(),
+                                        oldState.snapshotEndSequenceNumber());
+                                state.put(newState);
+                            } else {
+                                while(count >= maxDrainRate) {
+                                    try {
+                                        ConnectWriter.sync.wait();
+                                    } catch (Exception e) {}
+                                }
+                                writer.addToQueue(converter.toEvent(dcpRequest));
+                                count++;
+                            }
                         }
                     }
                 });
     }
 
-//    private static long count = 0;
+    private static long count = 0;
 }
