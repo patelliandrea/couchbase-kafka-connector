@@ -124,7 +124,9 @@ public class DefaultCouchbaseEnvironment extends DefaultCoreEnvironment implemen
     }
 
     @Override
-    public Integer maxDrainRate() { return maxDrainRate; }
+    public Integer maxDrainRate() {
+        return maxDrainRate;
+    }
 
     private List<String> stringListPropertyOr(String path, List<String> def) {
         String found = stringPropertyOr(path, null);

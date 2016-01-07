@@ -177,7 +177,7 @@ public class CouchbaseReader {
                 .forEach(new Action1<DCPRequest>() {
                     @Override
                     public void call(final DCPRequest dcpRequest) {
-                        synchronized(ConnectWriter.sync) {
+                        synchronized (ConnectWriter.sync) {
                             if (dcpRequest instanceof SnapshotMarkerMessage) {
                                 SnapshotMarkerMessage snapshotMarker = (SnapshotMarkerMessage) dcpRequest;
                                 final BucketStreamState oldState = state.get(snapshotMarker.partition());
@@ -190,10 +190,11 @@ public class CouchbaseReader {
                                         oldState.snapshotEndSequenceNumber());
                                 state.put(newState);
                             } else {
-                                while(count >= maxDrainRate) {
+                                while (count >= maxDrainRate) {
                                     try {
                                         ConnectWriter.sync.wait();
-                                    } catch (Exception e) {}
+                                    } catch (Exception e) {
+                                    }
                                 }
                                 writer.addToQueue(converter.toEvent(dcpRequest));
                                 count++;

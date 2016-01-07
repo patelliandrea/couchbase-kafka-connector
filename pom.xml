@@ -10,15 +10,17 @@
     <repositories>
         <!-- using local repository in order to use com.couchbase.client:core-io:1.2.3 -->
         <!--<repository>-->
-            <!--<url>file://${project.basedir}/repos</url>-->
-            <!--<id>localRepository</id>-->
+        <!--<url>file://${project.basedir}/repos</url>-->
+        <!--<id>localRepository</id>-->
         <!--</repository>-->
-            <repository>
-                <id>couchbase</id>
-                <name>couchbase repo</name>
-                <url>http://files.couchbase.com/maven2</url>
-                <snapshots><enabled>false</enabled></snapshots>
-            </repository>
+        <repository>
+            <id>couchbase</id>
+            <name>couchbase repo</name>
+            <url>http://files.couchbase.com/maven2</url>
+            <snapshots>
+                <enabled>false</enabled>
+            </snapshots>
+        </repository>
     </repositories>
 
     <dependencies>
@@ -35,10 +37,10 @@
             <scope>compile</scope>
         </dependency>
         <!--<dependency>-->
-            <!--<groupId>com.couchbase.client</groupId>-->
-            <!--<artifactId>core-io</artifactId>-->
-            <!--<version>1.2.5</version>-->
-            <!--<scope>compile</scope>-->
+        <!--<groupId>com.couchbase.client</groupId>-->
+        <!--<artifactId>core-io</artifactId>-->
+        <!--<version>1.2.5</version>-->
+        <!--<scope>compile</scope>-->
         <!--</dependency>-->
         <dependency>
             <groupId>com.couchbase.client</groupId>

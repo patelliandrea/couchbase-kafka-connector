@@ -5,7 +5,6 @@ import com.couchbase.client.deps.io.netty.util.CharsetUtil;
 import com.couchbase.kafka.ConnectWriter;
 import com.couchbase.kafka.CouchbaseConnector;
 import com.couchbase.kafka.DefaultCouchbaseEnvironment;
-import javafx.util.Pair;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.SchemaBuilder;
 import org.apache.kafka.connect.data.Struct;
@@ -65,7 +64,7 @@ public class CouchbaseSourceTask extends SourceTask {
         if (couchbaseBucket == null)
             throw new ConnectException("CouchbaseSourceTask config missing couchbaseBucket setting");
         maxDrainRate = Integer.parseInt(props.get(CouchbaseSourceConnector.MAX_DRAIN_RATE));
-        if(maxDrainRate == null)
+        if (maxDrainRate == null)
             throw new ConnectException("CoucbaseSourceTask config missing maxDrainRate setting");
 
         loadOffsets(couchbaseBucket);
@@ -147,7 +146,7 @@ public class CouchbaseSourceTask extends SourceTask {
                 committed.put(partition, count);
                 value.content().release();
             }
-                return records;
+            return records;
         }
     }
 

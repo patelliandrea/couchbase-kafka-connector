@@ -1,9 +1,7 @@
 package com.couchbase.kafka;
 
 import com.couchbase.client.core.message.dcp.MutationMessage;
-import com.couchbase.client.deps.io.netty.util.CharsetUtil;
 import com.couchbase.kafka.filter.Filter;
-import javafx.util.Pair;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -52,7 +50,7 @@ public class ConnectWriter {
         synchronized (sync) {
             Queue<MutationMessage> tmpQueue;
             tmpQueue = new LinkedList<>();
-            while(!queue.isEmpty()) {
+            while (!queue.isEmpty()) {
                 tmpQueue.add(queue.poll());
             }
             return new LinkedList<>(tmpQueue);
