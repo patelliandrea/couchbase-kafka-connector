@@ -62,5 +62,10 @@ public interface CouchbaseEnvironment extends CoreEnvironment {
      */
     SourceTaskContext getSourceTaskContext();
 
+    /**
+     * Max drain rate for the DCP stream
+     *
+     * @return the max drain rate
+     */
     Integer maxDrainRate();
 }

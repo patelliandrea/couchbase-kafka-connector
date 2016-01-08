@@ -95,7 +95,7 @@ public class CouchbaseReader {
     }
 
     /**
-     * Performs connection with 2 seconds timeout.
+     * Performs connection with 3 seconds timeout.
      */
     public void connect() {
         connect(3, TimeUnit.SECONDS);
@@ -162,6 +162,8 @@ public class CouchbaseReader {
                         }
                     }
                 });
+
+        // every second reset the counter
         Timer timer = new Timer();
         timer.schedule(new java.util.TimerTask() {
             @Override
@@ -190,6 +192,7 @@ public class CouchbaseReader {
                                         oldState.snapshotEndSequenceNumber());
                                 state.put(newState);
                             } else {
+                                // if reached the max drain rate, wait
                                 while (count >= maxDrainRate) {
                                     try {
                                         ConnectWriter.sync.wait();

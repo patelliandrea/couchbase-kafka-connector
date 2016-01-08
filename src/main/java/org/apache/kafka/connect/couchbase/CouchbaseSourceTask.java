@@ -91,7 +91,7 @@ public class CouchbaseSourceTask extends SourceTask {
                         .dcpEnabled(true)
                         .autoreleaseAfter(TimeUnit.SECONDS.toMillis(10L))
                         .dcpConnectionBufferSize(dcpConnectionBufferSize);
-        //;
+
         connector = CouchbaseConnector.create(builder.build());
         new Thread(connector).start();
     }
@@ -160,6 +160,11 @@ public class CouchbaseSourceTask extends SourceTask {
     public void stop() {
     }
 
+    /**
+     * Loads the saved offsets for the current bucket
+     *
+     * @param source the bucket for which load the offsets
+     */
     private void loadOffsets(String source) {
         List<Map<String, Short>> partitions = new ArrayList<>();
         for (Short i = 0; i < 1024; i++) {

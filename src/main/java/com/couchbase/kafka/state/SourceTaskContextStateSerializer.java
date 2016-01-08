@@ -24,25 +24,36 @@ public class SourceTaskContextStateSerializer implements StateSerializer {
         this.couchbaseBucket = environment.couchbaseBucket();
     }
 
+
+    /**
+     * Save the current state
+     *
+     * @param aggregatorState the state to save
+     */
     @Override
     public void dump(BucketStreamAggregatorState aggregatorState) {
-//        log.warn("dumping: {}", aggregatorState.toString());
-//        for(BucketStreamState streamState : aggregatorState) {
-//            dump(aggregatorState, streamState.partition());
-//        }
         // do nothing, dumped by committing offsets
     }
 
+    /**
+     * For every partition, save the current state
+     *
+     * @param aggregatorState the state to be saved
+     * @param partition       to partition for which save the state
+     */
     @Override
     public void dump(BucketStreamAggregatorState aggregatorState, Short partition) {
-//        TestClass.positions.put(partition, aggregatorState.get(partition).startSequenceNumber());
-//        context.offsetStorageReader().offset(Collections.singletonMap(partition.toString(), aggregatorState.get(partition).startSequenceNumber())).put(partition.toString(), aggregatorState.get(partition).startSequenceNumber());
         // do nothing, dumped by committing offsets
     }
 
+    /**
+     * Load the saved state
+     *
+     * @param aggregatorState the state to load
+     * @return the loaded state
+     */
     @Override
     public BucketStreamAggregatorState load(BucketStreamAggregatorState aggregatorState) {
-//        return new BucketStreamAggregatorState(aggregatorState.name());
         for (BucketStreamState streamState : aggregatorState) {
             BucketStreamState newState = load(aggregatorState, streamState.partition());
             if (newState != null) {
@@ -52,10 +63,16 @@ public class SourceTaskContextStateSerializer implements StateSerializer {
         return aggregatorState;
     }
 
+    /**
+     * For every partition, load the saved state
+     *
+     * @param aggregatorState the state to load
+     * @param partition       the partition for which load the state
+     * @return the loaded state
+     */
     @Override
     public BucketStreamState load(BucketStreamAggregatorState aggregatorState, Short partition) {
         BucketStreamState partitionState = aggregatorState.get(partition);
-//        Map<String, Object> offsetMap = context.offsetStorageReader().offset(Collections.singletonMap("couchbase", partition));
         Map<String, Object> offsetsForPartition = CouchbaseSourceTask.offsets.get(Collections.singletonMap(couchbaseBucket, partition));
         if (offsetsForPartition != null) {
             Long currentOffset = (Long) offsetsForPartition.get(partition.toString());
