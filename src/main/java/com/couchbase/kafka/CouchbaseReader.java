@@ -166,7 +166,7 @@ public class CouchbaseReader {
         timer.schedule(new java.util.TimerTask() {
             @Override
             public void run() {
-                log.warn("count {}", count);
+                log.trace("count {}", count);
                 count = 0;
             }
         }, 0, 1000);
