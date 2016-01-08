@@ -30,6 +30,7 @@ public class CouchbaseSourceTask extends SourceTask {
     private String couchbaseNodes;
     private String couchbaseBucket;
     private Integer maxDrainRate;
+    private Integer dcpConnectionBufferSize;
 
     public static Map<Map<String, Short>, Map<String, Object>> offsets;
 
@@ -67,6 +68,7 @@ public class CouchbaseSourceTask extends SourceTask {
         if (maxDrainRate == null)
             throw new ConnectException("CoucbaseSourceTask config missing maxDrainRate setting");
 
+        dcpConnectionBufferSize = Integer.parseInt(props.get(CouchbaseSourceConnector.DCP_BUFFER_SIZE));
         loadOffsets(couchbaseBucket);
 
         schema = SchemaBuilder
@@ -88,7 +90,7 @@ public class CouchbaseSourceTask extends SourceTask {
                         .couchbaseStateSerializerClass("com.couchbase.kafka.state.SourceTaskContextStateSerializer")
                         .dcpEnabled(true)
                         .autoreleaseAfter(TimeUnit.SECONDS.toMillis(10L))
-                        .dcpConnectionBufferSize(0);
+                        .dcpConnectionBufferSize(dcpConnectionBufferSize);
         //;
         connector = CouchbaseConnector.create(builder.build());
         new Thread(connector).start();

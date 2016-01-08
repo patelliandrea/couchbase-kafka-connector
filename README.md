@@ -32,4 +32,6 @@ couchbase.bucket=beer-sample
 tasks.max=1
 # maximum number of documents to fetch from couchbase every second
 dcp.maximum.drainrate=600
+# size of the couchbase dcp buffer
+couchbase.dcpConnectionBufferSize=0
 ```

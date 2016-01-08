@@ -1,5 +1,6 @@
 package org.apache.kafka.connect.couchbase;
 
+import com.couchbase.client.core.env.DefaultCoreEnvironment;
 import org.apache.kafka.common.utils.AppInfoParser;
 import org.apache.kafka.connect.connector.Task;
 import org.apache.kafka.connect.errors.ConnectException;
@@ -22,12 +23,14 @@ public class CouchbaseSourceConnector extends SourceConnector {
     public static final String COUCHBASE_NODES = "couchbase.nodes";
     public static final String COUCHBASE_BUCKET = "couchbase.bucket";
     public static final String MAX_DRAIN_RATE = "dcp.maximum.drainrate";
+    public static final String DCP_BUFFER_SIZE = "couchbase.dcpConnectionBufferSize";
 
     private String topic;
     private String schemaName;
     private String couchbaseNodes;
     private String couchbaseBucket;
     private String maxDrainRate;
+    private String dcpConnectionBufferSize;
 
     /**
      * Get the version of this connector.
@@ -52,6 +55,7 @@ public class CouchbaseSourceConnector extends SourceConnector {
         couchbaseNodes = props.get(COUCHBASE_NODES);
         couchbaseBucket = props.get(COUCHBASE_BUCKET);
         maxDrainRate = props.get(MAX_DRAIN_RATE);
+        dcpConnectionBufferSize = props.get(DCP_BUFFER_SIZE);
 
         if (topic == null || topic.isEmpty())
             throw new ConnectException("Configuration must include 'topic' setting");
@@ -70,6 +74,15 @@ public class CouchbaseSourceConnector extends SourceConnector {
                 Integer.parseInt(maxDrainRate);
             } catch (Exception e) {
                 throw new ConnectException("'dcp.maximum.drainrate' setting should be an integer");
+            }
+        }
+        if (dcpConnectionBufferSize == null || dcpConnectionBufferSize.isEmpty()) {
+            dcpConnectionBufferSize = Integer.toString(DefaultCoreEnvironment.DCP_CONNECTION_BUFFER_SIZE);
+        } else {
+            try {
+                Integer.parseInt(dcpConnectionBufferSize);
+            } catch (Exception e) {
+                throw new ConnectException("'couchbase.dcpConnectionBufferSize' setting should be an integer");
             }
         }
     }
@@ -98,6 +111,7 @@ public class CouchbaseSourceConnector extends SourceConnector {
         config.put(COUCHBASE_NODES, couchbaseNodes);
         config.put(COUCHBASE_BUCKET, couchbaseBucket);
         config.put(MAX_DRAIN_RATE, maxDrainRate);
+        config.put(DCP_BUFFER_SIZE, dcpConnectionBufferSize);
         configs.add(config);
         return configs;
     }
