@@ -8,11 +8,6 @@
     <artifactId>connect-couchbase-schema-source</artifactId>
     <version>1.0</version>
     <repositories>
-        <!-- using local repository in order to use com.couchbase.client:core-io:1.2.3 -->
-        <!--<repository>-->
-        <!--<url>file://${project.basedir}/repos</url>-->
-        <!--<id>localRepository</id>-->
-        <!--</repository>-->
         <repository>
             <id>couchbase</id>
             <name>couchbase repo</name>
@@ -36,12 +31,6 @@
             <version>1.7.6</version>
             <scope>compile</scope>
         </dependency>
-        <!--<dependency>-->
-        <!--<groupId>com.couchbase.client</groupId>-->
-        <!--<artifactId>core-io</artifactId>-->
-        <!--<version>1.2.5</version>-->
-        <!--<scope>compile</scope>-->
-        <!--</dependency>-->
         <dependency>
             <groupId>com.couchbase.client</groupId>
             <artifactId>core-io</artifactId>
