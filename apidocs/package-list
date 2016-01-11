@@ -1,0 +1,5 @@
+com.couchbase.kafka
+com.couchbase.kafka.converter
+com.couchbase.kafka.filter
+com.couchbase.kafka.state
+org.apache.kafka.connect.couchbase
